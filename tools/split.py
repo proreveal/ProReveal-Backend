@@ -16,7 +16,7 @@ def write(oid, buffer):
     output_path = os.path.join(args.output_path, f'{oid}.csv')
     with open(output_path, 'w', encoding='utf8') as fout:
         for line in buffer:
-            print(line, file=fout)
+            print(line, file=fout, end='')
             
     return output_path
     
@@ -70,7 +70,7 @@ def main():
             oid += 1
 
         if header is not None:
-            metadata['header'] = [{"name": name} for name in header.strip().split(',')]
+            metadata['header'] = [{"name": name.lstrip('\"').rstrip('\"')} for name in header.strip().split(',') if len(name) > 0]
         
         with open(os.path.join(args.output_path, 'metadata.json'), 'w', encoding='utf8') as outf:
             json.dump(metadata, outf, indent=2)           

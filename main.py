@@ -1,7 +1,7 @@
-from pyspark.sql import SparkSession
-from flask import Flask
+# from pyspark.sql import SparkSession
+from flask import Flask, request
 import json
-from flask import request
+from flask_socketio import SocketIO, emit
 
 def shutdown_server():
     func = request.environ.get('werkzeug.server.shutdown')
@@ -10,16 +10,8 @@ def shutdown_server():
     func()
 
 app = Flask(__name__)
-spark = None
-sc = None
-
-def init_spark():
-    global spark, sc
-    print("asdfajhfoiwejfoiwefjoiewf", spark)
-    if spark is None:
-        spark = SparkSession.builder.appName("ProReveal-Server").getOrCreate()
-        sc = spark.sparkContext
-        
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app)
 
 @app.route("/")
 def hello():    
@@ -32,7 +24,14 @@ def shutdown():
     shutdown_server()
     return 'Server shutting down...'
     
-if __name__ == '__main__':
-    init_spark()
+@socketio.on('connect')
+def connected():
+    emit('welcome')
 
-    app.run(host="localhost", port=7999, debug=False, use_reloader=False)
+@socketio.on('meesage')
+def ss(msg):
+    print('received', msg)
+
+if __name__ == '__main__':
+    #app.run(host="localhost", port=7999, debug=False, use_reloader=False)
+    socketio.run(app, host="0.0.0.0", port=7999, debug=True)
