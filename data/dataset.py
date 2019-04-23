@@ -2,37 +2,44 @@ import os
 import json
 
 from pyspark.sql.types import StructType, StructField
-from pyspark.sql.types import DoubleType, IntegerType, StringType
+from .field import FieldTrait
+
+class Sample:
+    def __init__(self, index, path):
+        self.index = index
+        self.path = path
 
 class Dataset:
     def __init__(self, spark, path):
         self.spark = spark
         self.path = path
-
+        self.fields = []
+        
     
     def load(self):
         self.metadata = json.load(open(os.path.join(self.path, 'metadata.json')))
-    
-    def schema(self):
-        schema = []
+
+        self.fields = []
         for field in self.metadata['header']:
-            name = field['name']
-            data_type = field['dataType']
-            field_type = None
+            self.fields.append(FieldTrait.from_json(field))
+        
+        self.samples = [Sample(i, sample['output_path']) for i, sample in enumerate(self.metadata['output_files'])]
 
-            if data_type == 'Integer':
-                field_type = IntegerType()
-            elif data_type == 'String':
-                field_type = StringType()
-            elif data_type == 'Real':
-                field_type = DoubleType()
-
-            schema.append(StructField(name, field_type))
+    def get_field_by_name(self, name):
+        for field in self.fields:
+            if field.name == name:
+                return field
+        
+        return None
+    
+    def get_schema(self):
+        schema = [StructField(field.name, field.get_pyspark_sql_type()())
+            for field in self.fields]
         
         return StructType(schema)
     
     def get_sample_df(self, sid):
-        df = self.spark.read.format('csv').option('header', 'false').schema(self.schema()).load(self.metadata['output_files'][sid]['output_path'])
+        df = self.spark.read.format('csv').option('header', 'false').schema(self.get_schema()).load(self.metadata['output_files'][sid]['output_path'])
 
         return df
     
