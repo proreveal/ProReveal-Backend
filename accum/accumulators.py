@@ -3,6 +3,7 @@ from .values import *
 MAX_VALUE = float('inf')
 Undefined = None
 
+# TODO: do we need this?
 class AllAccumulator:
     InitPartialValue = PartialValue(0, 0, 0, MAX_VALUE, -MAX_VALUE, 0)
     InitAccumulatedValue = AccumulatedValue(0, 0, 0, MAX_VALUE, -MAX_VALUE, 0)

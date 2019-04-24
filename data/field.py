@@ -61,11 +61,11 @@ class FieldTrait:
         data_type = DataType.from_string(json['dataType'])
         vl_type = json['vlType']
         
-        if vl_type == VlType.Quantitative:
+        if vl_type == VlType.Quantitative.value:
             return QuantitativeField(name, data_type)
-        elif vl_type == VlType.Ordinal:
+        elif vl_type == VlType.Ordinal.value:
             return OrdinalField(name, data_type)
-        elif vl_type == VlType.Nominal:
+        elif vl_type == VlType.Nominal.value:
             return NominalField(name, data_type)
 
         return KeyField(name, data_type)
