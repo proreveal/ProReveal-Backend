@@ -5,8 +5,11 @@ import eventlet
 
 eventlet.monkey_patch()
 
-from data import Dataset
 from pyspark.sql import SparkSession
+
+from data import Dataset
+from query import *
+from job_queue import JobQueue
 
 version = '0.1.0'
 spark = SparkSession.builder.appName(f'ProReveal Spark Engine {version}')\
@@ -19,33 +22,24 @@ sio = socketio.Server()
 app = socketio.WSGIApp(sio)
 sock = eventlet.listen(('', 7999))
 
-queue = []
+queue = JobQueue()
 
 def run_queue():    
     global queue
-    
+
     while True:
         if len(queue) > 0:
-            job = queue[0]
-            queue = queue[1:]
-            res = job.run(spark).collect()
-            sio.emit('result', res)
+            job = queue.dequeue()
+            res = job.run(spark)
+            sio.emit('result', {
+                'query': job.query.to_json(),
+                'job': job.to_json(),
+                'result': res
+            })
     
         eventlet.sleep(0)
 
 forever = eventlet.spawn(run_queue)
-
-# @sio.on('query')
-# def query(sid):
-#     query = AggregateQuery(AllAccumulator(), None,
-#         None, dataset, [dataset.get_field_by_name('YEAR')], None)
-
-#     jobs = query.get_jobs()
-#     global queue
-#     for job in jobs:
-#         queue.append(job)
-        
-#     sio.emit('result', 'query posted')
 
 @sio.on('connect')
 def connect(sid, environ):
@@ -53,7 +47,23 @@ def connect(sid, environ):
 
 @sio.on('REQ/schema')
 def req_schema(sid):
-    sio.emit('RES/schema', dataset.get_json_schema())
+    sio.emit('RES/schema', {
+        'schema': dataset.get_json_schema(),
+        'numRows': dataset.num_rows,
+        'numBlocks': len(dataset.samples)        
+    })
+
+@sio.on('REQ/query')
+def req_query(sid, query_json, priority):
+    query = Query.from_json(query_json, dataset)    
+    client_id = query_json['id']
+
+    queue.append(query.get_jobs())
+
+    sio.emit('RES/query', {
+        'clientQueryId': client_id, 
+        'queryId': query.id
+    })
 
 @sio.on('kill')
 def kill(sid):

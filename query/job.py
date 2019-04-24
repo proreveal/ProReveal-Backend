@@ -1,3 +1,5 @@
+from accum import *
+
 MAX_VALUE = float('inf')
 EMPTY_KEY = -999
 
@@ -8,13 +10,16 @@ class Job:
         self.id = Job.id
         Job.id += 1
 
+    def to_json(self):
+        return {'id': self.id}
+
 class AggregateJob(Job):
-    def __init__(self, sample, target, group_by, where, query, dataset):
+    def __init__(self, sample, target, grouping, where, query, dataset):
         super().__init__()
 
         self.sample = sample
         self.target = target
-        self.group_by = group_by
+        self.grouping = grouping
         self.where = where
         self.query = query
         self.dataset = dataset
@@ -23,7 +28,7 @@ class AggregateJob(Job):
         df = self.dataset.get_sample_df(self.sample.index)
         
         target_name = self.target.name
-        group_by_name = self.group_by.name
+        grouping_name = self.grouping.name
 
         # no null value
         # (sum, ssum, count, min, max)
@@ -41,7 +46,7 @@ class AggregateJob(Job):
         def merge_combiner(x, y):
             return (x[0] + y[0], x[1] + y[1], x[2] + y[2], min(x[3], y[3]), max(x[4], y[4]))
 
-        rdd = df.rdd.map(lambda row: (row[group_by_name], row[target_name]))
+        rdd = df.rdd.map(lambda row: (row[grouping_name], row[target_name]))
 
         result = rdd.filter(lambda pair: pair[1] is not None) \
                 .combineByKey(create_combiner, merge_value, merge_combiner) \
@@ -56,27 +61,31 @@ class AggregateJob(Job):
         # TODO
 
 class Frequency1DJob(Job):
-    def __init__(self, sample, group_by, where, query, dataset):
+    def __init__(self, sample, grouping, where, query, dataset):
         super().__init__()
 
         self.sample = sample
-        self.group_by = group_by
+        self.grouping = grouping
         self.where = where
         self.query = query
         self.dataset = dataset        
 
     def run(self, spark):
-        df = self.dataset.get_sample_df(self.sample.index)
-        return df.groupBy(self.group_by.name).count()
+        df = self.dataset.get_sample_df(self.sample.index)        
+        counts = df.groupBy(self.grouping.name).count().collect()
+        return counts
+
+    def to_json(self):
+        return {'id': self.id, 'numRows': self.sample.num_rows}
 
 
 class Frequency2DJob(Job):
-    def __init__(self, sample, group_by1, group_by2, where, query, dataset):
+    def __init__(self, sample, grouping1, grouping2, where, query, dataset):
         super().__init__()
 
         self.sample = sample
-        self.group_by1 = group_by1
-        self.group_by2 = group_by2
+        self.grouping1 = grouping1
+        self.grouping2 = grouping2
         self.where = where
         self.query = query
         self.dataset = dataset
@@ -84,14 +93,14 @@ class Frequency2DJob(Job):
     
     def run(self, spark):
         df = self.dataset.get_sample_df(self.sample.index)
-        return df.groupBy(self.group_by1.name, self.group_by2.name).count()
+        return df.groupBy(self.grouping1.name, self.grouping2.name).count()
 
 class Histogram1DJob(Job):
-    def __init__(self, sample, group_by, where, query, dataset):
+    def __init__(self, sample, grouping, where, query, dataset):
         super().__init__()
 
         self.sample = sample
-        self.group_by = group_by
+        self.grouping = grouping
         self.where = where
         self.query = query
         self.dataset = dataset
@@ -108,21 +117,21 @@ class Histogram1DJob(Job):
             x = (value[0] - bin_start) // bin_size
             return (max(min(x, num_bins - 1), 0), )
         
-        group_by_name = self.group_by.name
+        grouping_name = self.grouping.name
 
         df = self.dataset.get_sample_df(self.sample.index)
-        rdd = df.rdd.map(lambda row: (row[group_by_name], ))
+        rdd = df.rdd.map(lambda row: (row[grouping_name], ))
 
         result = rdd.map(mapper).countByKey()
         print(result)
 
 class Histogram2DJob(Job):
-    def __init__(self, sample, group_by1, group_by2, where, query, dataset):
+    def __init__(self, sample, grouping1, grouping2, where, query, dataset):
         super().__init__()
 
         self.sample = sample
-        self.group_by1 = group_by1
-        self.group_by2 = group_by2
+        self.grouping1 = grouping1
+        self.grouping2 = grouping2
         self.where = where
         self.query = query
         self.dataset = dataset
@@ -151,11 +160,11 @@ class Histogram2DJob(Job):
 
             return ((x, y), )
 
-        group_by_name1 = self.group_by1.name
-        group_by_name2 = self.group_by2.name
+        grouping_name1 = self.grouping1.name
+        grouping_name2 = self.grouping2.name
 
         df = self.dataset.get_sample_df(self.sample.index)
-        rdd = df.rdd.map(lambda row: ((row[group_by_name1], row[group_by_name2]), ))
+        rdd = df.rdd.map(lambda row: ((row[grouping_name1], row[grouping_name2]), ))
 
         result = rdd.map(mapper).countByKey()
 

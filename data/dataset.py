@@ -5,16 +5,16 @@ from pyspark.sql.types import StructType, StructField
 from .field import FieldTrait
 
 class Sample:
-    def __init__(self, index, path):
+    def __init__(self, index, path, num_rows):
         self.index = index
         self.path = path
+        self.num_rows = num_rows
 
-class Dataset:
+class Dataset:    
     def __init__(self, spark, path):
         self.spark = spark
         self.path = path
-        self.fields = []
-        
+        self.fields = []        
     
     def load(self):
         self.metadata = json.load(open(os.path.join(self.path, 'metadata.json')))
@@ -23,7 +23,13 @@ class Dataset:
         for field in self.metadata['header']:
             self.fields.append(FieldTrait.from_json(field))
         
-        self.samples = [Sample(i, sample['output_path']) for i, sample in enumerate(self.metadata['output_files'])]
+        self.samples = [Sample(i, sample['output_path'], sample['num_rows']) for i, sample in enumerate(self.metadata['output_files'])]
+
+        num_rows = 0
+        for sample in self.samples:
+            num_rows += sample.num_rows
+
+        self.num_rows = num_rows        
 
     def get_field_by_name(self, name):
         for field in self.fields:

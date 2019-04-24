@@ -10,8 +10,7 @@ def main():
     dataset = Dataset(spark, 'd:\\flights\\blocks')
     dataset.load()
     
-    print(dataset.get_json_schema())
-    return 
+    # print(dataset.get_json_schema())
     # show test data
     # df = dataset.get_sample_df(0)    
     # df.show(10)
