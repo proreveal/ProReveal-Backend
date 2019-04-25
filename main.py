@@ -48,7 +48,7 @@ def disconnect(sid):
     queue.remove_by_client_id(sid)
 
 @sio.on('REQ/schema')
-def req_schema(sid):
+def schema(sid):
     sio.emit('RES/schema', {
         'schema': dataset.get_json_schema(),
         'numRows': dataset.num_rows,
@@ -56,7 +56,7 @@ def req_schema(sid):
     })
 
 @sio.on('REQ/query')
-def req_query(sid, query_json, priority):
+def query(sid, query_json, priority):
     print(f'Incoming query from {sid}')
     query = Query.from_json(query_json, dataset, sid)
     client_query_id = query_json['id']
@@ -67,6 +67,13 @@ def req_query(sid, query_json, priority):
         'clientQueryId': client_query_id, 
         'queryId': query.id
     })
+
+@sio.on('REQ/query/delete')
+def query_delete(sid, query_json):
+    query_id = query_json['id']
+    
+    queue.remove_by_query_id(query_id)
+
 
 @sio.on('kill')
 def kill(sid):

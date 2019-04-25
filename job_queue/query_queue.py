@@ -25,7 +25,9 @@ class JobQueue:
 
     def remove_by_client_id(self, client_id):
         self.queue = [job for job in self.queue if job.client_id != client_id]
+
+    
+    def remove_by_query_id(self, query_id):
+        self.queue = [job for job in self.queue if job.query.id != query_id]
         
     
-
-        
