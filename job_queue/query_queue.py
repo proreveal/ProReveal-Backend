@@ -22,6 +22,10 @@ class JobQueue:
         self.queue = self.queue[1:]
 
         return first
+
+    def remove_by_client_id(self, client_id):
+        self.queue = [job for job in self.queue if job.client_id != client_id]
+        
     
 
         

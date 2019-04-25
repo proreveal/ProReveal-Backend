@@ -6,16 +6,18 @@ EMPTY_KEY = -999
 class Job:
     id = 1
 
-    def __init__(self):
+    def __init__(self, client_id):
         self.id = Job.id
         Job.id += 1
+
+        self.client_id = client_id
 
     def to_json(self):
         return {'id': self.id}
 
 class AggregateJob(Job):
-    def __init__(self, sample, target, grouping, where, query, dataset):
-        super().__init__()
+    def __init__(self, sample, target, grouping, where, query, dataset, client_id):
+        super().__init__(client_id)
 
         self.sample = sample
         self.target = target
@@ -61,8 +63,8 @@ class AggregateJob(Job):
         # TODO
 
 class Frequency1DJob(Job):
-    def __init__(self, sample, grouping, where, query, dataset):
-        super().__init__()
+    def __init__(self, sample, grouping, where, query, dataset, client_id):
+        super().__init__(client_id)
 
         self.sample = sample
         self.grouping = grouping
@@ -80,8 +82,8 @@ class Frequency1DJob(Job):
 
 
 class Frequency2DJob(Job):
-    def __init__(self, sample, grouping1, grouping2, where, query, dataset):
-        super().__init__()
+    def __init__(self, sample, grouping1, grouping2, where, query, dataset, client_id):
+        super().__init__(client_id)
 
         self.sample = sample
         self.grouping1 = grouping1
@@ -96,8 +98,8 @@ class Frequency2DJob(Job):
         return df.groupBy(self.grouping1.name, self.grouping2.name).count()
 
 class Histogram1DJob(Job):
-    def __init__(self, sample, grouping, where, query, dataset):
-        super().__init__()
+    def __init__(self, sample, grouping, where, query, dataset, client_id):
+        super().__init__(client_id)
 
         self.sample = sample
         self.grouping = grouping
@@ -126,8 +128,8 @@ class Histogram1DJob(Job):
         print(result)
 
 class Histogram2DJob(Job):
-    def __init__(self, sample, grouping1, grouping2, where, query, dataset):
-        super().__init__()
+    def __init__(self, sample, grouping1, grouping2, where, query, dataset, client_id):
+        super().__init__(client_id)
 
         self.sample = sample
         self.grouping1 = grouping1

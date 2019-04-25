@@ -23,7 +23,7 @@ class Dataset:
         for field in self.metadata['header']:
             self.fields.append(FieldTrait.from_json(field))
         
-        self.samples = [Sample(i, sample['output_path'], sample['num_rows']) for i, sample in enumerate(self.metadata['output_files'])]
+        self.samples = [Sample(i, sample['path'], sample['num_rows']) for i, sample in enumerate(self.metadata['output_files'])]
 
         num_rows = 0
         for sample in self.samples:
@@ -56,7 +56,9 @@ class Dataset:
         return schema
 
     def get_sample_df(self, sid):
-        df = self.spark.read.format('csv').option('header', 'false').schema(self.get_spark_schema()).load(self.metadata['output_files'][sid]['output_path'])
+        df = self.spark.read.format('csv').option('header', 'false')\
+            .schema(self.get_spark_schema())\
+            .load(self.metadata['output_files'][sid]['path'])
 
         return df
     

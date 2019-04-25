@@ -15,7 +15,7 @@ version = '0.1.0'
 spark = SparkSession.builder.appName(f'ProReveal Spark Engine {version}')\
      .getOrCreate()
 
-dataset = Dataset(spark, 'd:\\flights\\blocks')
+dataset = Dataset(spark, 'd:\\flights\\blocks2')
 dataset.load()
 
 sio = socketio.Server()
@@ -25,8 +25,6 @@ sock = eventlet.listen(('', 7999))
 queue = JobQueue()
 
 def run_queue():    
-    global queue
-
     while True:
         if len(queue) > 0:
             job = queue.dequeue()
@@ -45,23 +43,28 @@ forever = eventlet.spawn(run_queue)
 def connect(sid, environ):
     sio.emit('welcome', f'Welcome from ProReveal Spark Engine {version}')
 
+@sio.on('disconnect')
+def disconnect(sid):
+    queue.remove_by_client_id(sid)
+
 @sio.on('REQ/schema')
 def req_schema(sid):
     sio.emit('RES/schema', {
         'schema': dataset.get_json_schema(),
         'numRows': dataset.num_rows,
-        'numBlocks': len(dataset.samples)        
+        'numBatches': len(dataset.samples)        
     })
 
 @sio.on('REQ/query')
 def req_query(sid, query_json, priority):
-    query = Query.from_json(query_json, dataset)    
-    client_id = query_json['id']
+    print(f'Incoming query from {sid}')
+    query = Query.from_json(query_json, dataset, sid)
+    client_query_id = query_json['id']
 
     queue.append(query.get_jobs())
 
     sio.emit('RES/query', {
-        'clientQueryId': client_id, 
+        'clientQueryId': client_query_id, 
         'queryId': query.id
     })
 

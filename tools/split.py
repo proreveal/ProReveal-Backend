@@ -86,7 +86,7 @@ def main():
                     count += 1
                     buffer.append(line)
 
-                    if count % args.rownums == 0:
+                    if count % args.num_rows == 0:
                         output_path = write(oid, buffer)
                         metadata['output_files'].append(output_meta(oid, output_path, len(buffer)))
                         oid += 1
