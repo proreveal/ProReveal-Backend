@@ -1,1 +1,1 @@
-from .query_queue import *
+from .job_queue import *

@@ -1,6 +1,7 @@
 import random
 
-from .job import Frequency1DJob
+from .job import *
+from .predicate import Predicate
 
 class Query:
     id = 1
@@ -14,11 +15,23 @@ class Query:
     @staticmethod
     def from_json(json, dataset, client_id):
         type_string = json['type']
+        where_string = json['where']
+
+        where = None
+        
+        if where_string is not None and len(where_string) > 0:
+            where = Predicate.from_json(where_string)
 
         if type_string == Frequency1DQuery.name:
             grouping = json['grouping']['name']
 
-            return Frequency1DQuery(dataset.get_field_by_name(grouping), None, dataset, client_id)
+            return Frequency1DQuery(dataset.get_field_by_name(grouping), where, dataset, client_id)
+
+        elif type_string == Frequency2DQuery.name:
+            grouping1 = dataset.get_field_by_name(json['grouping1']['name'])
+            grouping2 = dataset.get_field_by_name(json['grouping2']['name'])
+
+            return Frequency2DQuery(grouping1, grouping2, where, dataset, client_id)
         
         return 
     
@@ -28,8 +41,7 @@ class Query:
 class Frequency1DQuery(Query):
     name = "Frequency1DQuery"
 
-    def __init__(self, grouping, where, dataset, client_id, shuffle=True):
-        
+    def __init__(self, grouping, where, dataset, client_id, shuffle=True):        
         super().__init__(client_id, shuffle)
 
         self.grouping = grouping
@@ -42,6 +54,30 @@ class Frequency1DQuery(Query):
         for sample in self.dataset.samples:
             jobs.append(Frequency1DJob(
                 sample, self.grouping, self.where, self, self.dataset, self.client_id
+            ))
+
+        if self.shuffle:
+            random.shuffle(jobs)
+
+        return jobs
+
+class Frequency2DQuery(Query):
+    name = "Frequency2DQuery"
+
+    def __init__(self, grouping1, grouping2, where, dataset, client_id, shuffle=True):        
+        super().__init__(client_id, shuffle)
+
+        self.grouping1 = grouping1
+        self.grouping2 = grouping2
+        self.where = where
+        self.dataset = dataset
+
+    def get_jobs(self):
+        jobs = []
+        
+        for sample in self.dataset.samples:
+            jobs.append(Frequency2DJob(
+                sample, self.grouping1, self.grouping2, self.where, self, self.dataset, self.client_id
             ))
 
         if self.shuffle:

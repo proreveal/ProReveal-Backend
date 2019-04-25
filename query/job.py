@@ -74,6 +74,9 @@ class AggregateJob(Job):
 
         # TODO
 
+    def to_json(self):
+        return {'id': self.id, 'numRows': self.sample.num_rows}
+
 class Frequency1DJob(Job):
     def __init__(self, sample, grouping, where, query, dataset, client_id):
         super().__init__(client_id)
@@ -85,7 +88,11 @@ class Frequency1DJob(Job):
         self.dataset = dataset        
 
     def run(self, spark):
-        df = self.dataset.get_sample_df(self.sample.index)        
+        df = self.dataset.get_sample_df(self.sample.index)
+
+        if self.where is not None:
+            df = df.filter(self.where.to_sql())
+
         counts = df.groupBy(self.grouping.name).count().collect()
         return counts
 
@@ -107,7 +114,16 @@ class Frequency2DJob(Job):
     
     def run(self, spark):
         df = self.dataset.get_sample_df(self.sample.index)
-        return df.groupBy(self.grouping1.name, self.grouping2.name).count()
+
+        if self.where is not None:
+            df = df.filter(self.where.to_sql())
+
+        counts = df.groupBy(self.grouping1.name, self.grouping2.name).count().collect()
+
+        return counts
+
+    def to_json(self):
+        return {'id': self.id, 'numRows': self.sample.num_rows}
 
 class Histogram1DJob(Job):
     def __init__(self, sample, grouping, where, query, dataset, client_id):
@@ -138,6 +154,9 @@ class Histogram1DJob(Job):
 
         result = rdd.map(mapper).countByKey()
         print(result)
+
+    def to_json(self):
+        return {'id': self.id, 'numRows': self.sample.num_rows}
 
 class Histogram2DJob(Job):
     def __init__(self, sample, grouping1, grouping2, where, query, dataset, client_id):
@@ -183,3 +202,6 @@ class Histogram2DJob(Job):
         result = rdd.map(mapper).countByKey()
 
         print(result)
+
+    def to_json(self):
+        return {'id': self.id, 'numRows': self.sample.num_rows}

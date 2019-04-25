@@ -7,7 +7,7 @@ def main():
     spark = SparkSession.builder.appName("API Examples")\
         .getOrCreate()
 
-    dataset = Dataset(spark, 'd:\\flights\\blocks')
+    dataset = Dataset(spark, 'd:\\flights\\blocks2')
     dataset.load()
     
     # print(dataset.get_json_schema())
@@ -29,9 +29,9 @@ def main():
 
     # count by two categorical
 
-    # job = Frequency2DJob(dataset.samples[0], year, month, None, None, dataset)
-    # res = job.run(spark)
-    # print(res.collect())
+    job = Frequency2DJob(dataset.samples[0], year, month, None, None, dataset, 1)
+    res = job.run(spark)
+    print(res)
 
     # sum by 1 categorical
     
@@ -45,8 +45,8 @@ def main():
 
     # histogram 2d
 
-    job = Histogram2DJob(dataset.samples[0], year, month, None, None, dataset)
-    res = job.run(spark)
+    # job = Histogram2DJob(dataset.samples[0], year, month, None, None, dataset, 1)
+    # res = job.run(spark)
 
 if __name__ == '__main__':
     main()

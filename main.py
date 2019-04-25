@@ -22,12 +22,12 @@ sio = socketio.Server()
 app = socketio.WSGIApp(sio)
 sock = eventlet.listen(('', 7999))
 
-queue = JobQueue()
+job_queue = JobQueue()
 
 def run_queue():    
     while True:
-        if len(queue) > 0 and queue.peep().state == JobState.Running:
-            job = queue.dequeue()
+        if len(job_queue) > 0 and job_queue.peep().state == JobState.Running:
+            job = job_queue.dequeue()
             res = job.run(spark)
             sio.emit('result', {
                 'query': job.query.to_json(),
@@ -45,7 +45,7 @@ def connect(sid, environ):
 
 @sio.on('disconnect')
 def disconnect(sid):
-    queue.remove_by_client_id(sid)
+    job_queue.remove_by_client_id(sid)
 
 @sio.on('REQ/schema')
 def schema(sid):
@@ -61,7 +61,7 @@ def query(sid, query_json, priority):
     query = Query.from_json(query_json, dataset, sid)
     client_query_id = query_json['id']
 
-    queue.append(query.get_jobs())
+    job_queue.append(query.get_jobs())
 
     sio.emit('RES/query', {
         'clientQueryId': client_query_id, 
@@ -72,19 +72,19 @@ def query(sid, query_json, priority):
 def query_pause(sid, query_json):
     query_id = query_json['id']
     
-    queue.pause_by_query_id(query_id)
+    job_queue.pause_by_query_id(query_id)
 
 @sio.on('REQ/query/resume')
 def query_pause(sid, query_json):
     query_id = query_json['id']
     
-    queue.resume_by_query_id(query_id)
+    job_queue.resume_by_query_id(query_id)
 
 @sio.on('REQ/query/delete')
 def query_delete(sid, query_json):
     query_id = query_json['id']
     
-    queue.remove_by_query_id(query_id)
+    job_queue.remove_by_query_id(query_id)
 
 
 @sio.on('kill')
