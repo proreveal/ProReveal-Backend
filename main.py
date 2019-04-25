@@ -26,7 +26,7 @@ queue = JobQueue()
 
 def run_queue():    
     while True:
-        if len(queue) > 0:
+        if len(queue) > 0 and queue.peep().state == JobState.Running:
             job = queue.dequeue()
             res = job.run(spark)
             sio.emit('result', {
@@ -67,6 +67,18 @@ def query(sid, query_json, priority):
         'clientQueryId': client_query_id, 
         'queryId': query.id
     })
+
+@sio.on('REQ/query/pause')
+def query_pause(sid, query_json):
+    query_id = query_json['id']
+    
+    queue.pause_by_query_id(query_id)
+
+@sio.on('REQ/query/resume')
+def query_pause(sid, query_json):
+    query_id = query_json['id']
+    
+    queue.resume_by_query_id(query_id)
 
 @sio.on('REQ/query/delete')
 def query_delete(sid, query_json):

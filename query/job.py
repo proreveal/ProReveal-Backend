@@ -1,17 +1,29 @@
 from accum import *
+from enum import Enum
 
 MAX_VALUE = float('inf')
 EMPTY_KEY = -999
+
+class JobState(Enum):
+    Running = 'Running'
+    Paused = 'Paused'
 
 class Job:
     id = 1
 
     def __init__(self, client_id):
         self.id = Job.id
+        self.state = JobState.Running
         Job.id += 1
 
         self.client_id = client_id
 
+    def resume(self):
+        self.state = JobState.Running
+    
+    def pause(self):
+        self.state = JobState.Paused
+        
     def to_json(self):
         return {'id': self.id}
 
