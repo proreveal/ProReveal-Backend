@@ -29,9 +29,9 @@ def main():
 
     # count by two categorical
 
-    job = Frequency2DJob(dataset.samples[0], year, month, None, None, dataset, 1)
-    res = job.run(spark)
-    print(res)
+    # job = Frequency2DJob(dataset.samples[0], year, month, None, None, dataset, 1)
+    # res = job.run(spark)
+    # print(res)
 
     # sum by 1 categorical
     

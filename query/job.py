@@ -40,7 +40,10 @@ class AggregateJob(Job):
 
     def run(self, spark):
         df = self.dataset.get_sample_df(self.sample.index)
-        
+
+        if self.where is not None:
+            df = df.filter(self.where.to_sql())
+
         target_name = self.target.name
         grouping_name = self.grouping.name
 
@@ -69,10 +72,19 @@ class AggregateJob(Job):
         null_counts = rdd.filter(lambda pair: pair[1] is None) \
                 .countByKey()
 
-        print(result)
-        print(null_counts)
+        result_keys = set(result.keys())
+        null_count_keys = set(null_counts.keys())
 
-        # TODO
+        for key in result_keys:
+            if key in null_counts:
+                result[key] = result[key] + (0, )
+            else:
+                result[key] = result[key] + (null_counts[key], )
+        
+        for key in null_count_keys - result_keys:
+            result[key] = (0, 0, 0, 0, 0, null_counts[key])
+        
+        return [(key, ) + res for key, res in result.items()]
 
     def to_json(self):
         return {'id': self.id, 'numRows': self.sample.num_rows}

@@ -57,7 +57,7 @@ def schema(sid):
 
 @sio.on('REQ/query')
 def query(sid, query_json, priority):
-    print(f'Incoming query from {sid}')
+    print(f'Incoming query from {sid} {query_json}')
     query = Query.from_json(query_json, dataset, sid)
     client_query_id = query_json['id']
 

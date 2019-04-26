@@ -33,10 +33,40 @@ class Query:
 
             return Frequency2DQuery(grouping1, grouping2, where, dataset, client_id)
         
+        elif type_string == AggregateQuery.name:
+            target = dataset.get_field_by_name(json['target']['name'])
+            grouping = dataset.get_field_by_name(json['grouping']['name'])
+
+            return AggregateQuery(target, grouping, where, dataset, client_id)
         return 
     
     def to_json(self):
         return {'id': self.id}
+
+class AggregateQuery(Query):
+    name = "AggregateQuery"
+
+    def __init__(self, target, grouping, where, dataset, client_id, shuffle=True):        
+        super().__init__(client_id, shuffle)
+
+        self.target = target
+        self.grouping = grouping
+        self.where = where
+        self.dataset = dataset
+
+    def get_jobs(self):
+        jobs = []
+        
+        for sample in self.dataset.samples:
+            jobs.append(AggregateJob(
+                sample, self.target, self.grouping, self.where, 
+                self, self.dataset, self.client_id
+            ))
+
+        if self.shuffle:
+            random.shuffle(jobs)
+
+        return jobs
 
 class Frequency1DQuery(Query):
     name = "Frequency1DQuery"
