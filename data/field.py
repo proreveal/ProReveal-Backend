@@ -21,7 +21,7 @@ class VlType(Enum):
     Quantitative = 'quantitative'
     Ordinal = 'ordinal'
     Nominal = 'nominal'
-    Key = 'key'    
+    Key = 'key'
 
     @staticmethod
     def from_string(string):
@@ -43,7 +43,7 @@ class FieldTrait:
         self.name = name
 
     def to_json(self):
-        return {'name': self.name, 'dataType': self.data_type, 'vlType': self.vl_type}
+        return {'name': self.name, 'dataType': self.data_type.value, 'vlType': self.vl_type.value}
 
     def get_pyspark_sql_type(self):
         if self.data_type is DataType.Integer:
@@ -62,7 +62,11 @@ class FieldTrait:
         vl_type = json['vlType']
         
         if vl_type == VlType.Quantitative.value:
-            return QuantitativeField(name, data_type)
+            min = json.get('min', None)
+            max = json.get('max', None)
+            num_bins = json.get('numBins', None)
+
+            return QuantitativeField(name, data_type, min, max, num_bins)
         elif vl_type == VlType.Ordinal.value:
             return OrdinalField(name, data_type)
         elif vl_type == VlType.Nominal.value:
@@ -72,6 +76,17 @@ class FieldTrait:
 
 class QuantitativeField(FieldTrait):
     vl_type = VlType.Quantitative
+
+    def __init__(self, name, data_type, min, max, num_bins):
+        super().__init__(name, data_type)
+
+        self.min = min
+        self.max = max
+        self.num_bins = num_bins
+
+    def to_json(self):
+        return {'name': self.name, 'dataType': self.data_type.value, 
+        'vlType': self.vl_type.value, 'min': self.min, 'max': self.max, 'num_bins': self.num_bins}
 
 class CategoricalField(FieldTrait):
     pass

@@ -38,13 +38,20 @@ class Query:
             grouping = dataset.get_field_by_name(json['grouping']['name'])
 
             return AggregateQuery(target, grouping, where, dataset, client_id)
+        
+        elif type_string == Histogram1DQuery.name:
+            grouping = dataset.get_field_by_name(json['grouping']['name'])
+            bin_spec = BinSpec.from_json(json['grouping'])
+
+            return Histogram1DQuery(grouping, bin_spec, where, dataset, client_id)
+            
         return 
     
     def to_json(self):
         return {'id': self.id}
 
 class AggregateQuery(Query):
-    name = "AggregateQuery"
+    name = 'AggregateQuery'
 
     def __init__(self, target, grouping, where, dataset, client_id, shuffle=True):        
         super().__init__(client_id, shuffle)
@@ -69,7 +76,7 @@ class AggregateQuery(Query):
         return jobs
 
 class Frequency1DQuery(Query):
-    name = "Frequency1DQuery"
+    name = 'Frequency1DQuery'
 
     def __init__(self, grouping, where, dataset, client_id, shuffle=True):        
         super().__init__(client_id, shuffle)
@@ -92,9 +99,9 @@ class Frequency1DQuery(Query):
         return jobs
 
 class Frequency2DQuery(Query):
-    name = "Frequency2DQuery"
+    name = 'Frequency2DQuery'
 
-    def __init__(self, grouping1, grouping2, where, dataset, client_id, shuffle=True):        
+    def __init__(self, grouping1, grouping2, where, dataset, client_id, shuffle=True):
         super().__init__(client_id, shuffle)
 
         self.grouping1 = grouping1
@@ -115,4 +122,43 @@ class Frequency2DQuery(Query):
 
         return jobs
 
+class BinSpec:
+    def __init__(self, start, end, step, num_bins):
+        self.start = start
+        self.end = end
+        self.step = step
+        self.num_bins = num_bins
+
+    @staticmethod
+    def from_json(bin_spec_json):
+        start = bin_spec_json['start']
+        end = bin_spec_json['end']
+        step = bin_spec_json['step']
+        num_bins = bin_spec_json['numBins']
+
+        return BinSpec(start, end, step, num_bins)
+
+class Histogram1DQuery(Query):
+    name = 'Histogram1DQuery'
+
+    def __init__(self, grouping, bin_spec, where, dataset, client_id, shuffle=True):
+        super().__init__(client_id, shuffle)
+
+        self.grouping = grouping
+        self.bin_spec = bin_spec
+        self.where = where
+        self.dataset = dataset
         
+    def get_jobs(self):
+        jobs = []
+        
+        for sample in self.dataset.samples:
+            jobs.append(Histogram1DJob(
+                sample, self.grouping, self.bin_spec, self.where, self,
+                self.dataset, self.client_id
+            ))
+
+        if self.shuffle:
+            random.shuffle(jobs)
+
+        return jobs

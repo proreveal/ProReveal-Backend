@@ -45,15 +45,7 @@ class Dataset:
         return StructType(schema)
     
     def get_json_schema(self):
-        schema = []
-        for field in self.fields:
-            schema.append({
-                'name': field.name,
-                'vlType': field.vl_type.value,
-                'dataType': field.data_type.value
-            })
-        
-        return schema
+        return [field.to_json() for field in self.fields]
 
     def get_sample_df(self, sid):
         df = self.spark.read.format('csv').option('header', 'false')\

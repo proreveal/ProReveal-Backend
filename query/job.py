@@ -138,25 +138,26 @@ class Frequency2DJob(Job):
         return {'id': self.id, 'numRows': self.sample.num_rows}
 
 class Histogram1DJob(Job):
-    def __init__(self, sample, grouping, where, query, dataset, client_id):
+    def __init__(self, sample, grouping, bin_spec, where, query, dataset, client_id):
         super().__init__(client_id)
 
         self.sample = sample
         self.grouping = grouping
+        self.bin_spec = bin_spec
         self.where = where
         self.query = query
         self.dataset = dataset
     
     def run(self, spark):        
-        bin_start = 0
-        bin_size = 1
-        num_bins = 10
+        bin_start = self.bin_spec.start
+        bin_step = self.bin_spec.step
+        num_bins = self.bin_spec.num_bins
 
         def mapper(value):
             if value[0] is None:
-                return (EMPTY_KEY, )
+                return (None, )
 
-            x = (value[0] - bin_start) // bin_size
+            x = int((value[0] - bin_start) // bin_step)
             return (max(min(x, num_bins - 1), 0), )
         
         grouping_name = self.grouping.name
@@ -164,8 +165,9 @@ class Histogram1DJob(Job):
         df = self.dataset.get_sample_df(self.sample.index)
         rdd = df.rdd.map(lambda row: (row[grouping_name], ))
 
-        result = rdd.map(mapper).countByKey()
-        print(result)
+        counts = list(rdd.map(mapper).countByKey().items())
+
+        return counts
 
     def to_json(self):
         return {'id': self.id, 'numRows': self.sample.num_rows}
