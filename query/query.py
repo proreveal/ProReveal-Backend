@@ -45,6 +45,15 @@ class Query:
 
             return Histogram1DQuery(grouping, bin_spec, where, dataset, client_id)
             
+        elif type_string == Histogram2DQuery.name:
+            grouping1 = dataset.get_field_by_name(json['grouping1']['name'])
+            bin_spec1 = BinSpec.from_json(json['grouping1'])
+            grouping2 = dataset.get_field_by_name(json['grouping2']['name'])
+            bin_spec2 = BinSpec.from_json(json['grouping2'])
+
+            return Histogram2DQuery(grouping1, bin_spec1, grouping2, bin_spec2,
+            where, dataset, client_id)
+
         return 
     
     def to_json(self):
@@ -155,6 +164,35 @@ class Histogram1DQuery(Query):
         for sample in self.dataset.samples:
             jobs.append(Histogram1DJob(
                 sample, self.grouping, self.bin_spec, self.where, self,
+                self.dataset, self.client_id
+            ))
+
+        if self.shuffle:
+            random.shuffle(jobs)
+
+        return jobs
+
+
+class Histogram2DQuery(Query):
+    name = 'Histogram2DQuery'
+
+    def __init__(self, grouping1, bin_spec1, grouping2, bin_spec2, where, dataset, client_id, shuffle=True):
+        super().__init__(client_id, shuffle)
+
+        self.grouping1 = grouping1
+        self.bin_spec1 = bin_spec1
+        self.grouping2 = grouping2
+        self.bin_spec2 = bin_spec2
+        self.where = where
+        self.dataset = dataset
+        
+    def get_jobs(self):
+        jobs = []
+        
+        for sample in self.dataset.samples:
+            jobs.append(Histogram2DJob(
+                sample, self.grouping1, self.bin_spec1, 
+                self.grouping2, self.bin_spec2, self.where, self,
                 self.dataset, self.client_id
             ))
 

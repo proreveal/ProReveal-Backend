@@ -173,36 +173,38 @@ class Histogram1DJob(Job):
         return {'id': self.id, 'numRows': self.sample.num_rows}
 
 class Histogram2DJob(Job):
-    def __init__(self, sample, grouping1, grouping2, where, query, dataset, client_id):
+    def __init__(self, sample, grouping1, bin_spec1, grouping2, bin_spec2, where, query, dataset, client_id):
         super().__init__(client_id)
 
         self.sample = sample
         self.grouping1 = grouping1
+        self.bin_spec1 = bin_spec1
         self.grouping2 = grouping2
+        self.bin_spec2 = bin_spec2
         self.where = where
         self.query = query
         self.dataset = dataset
     
     def run(self, spark):
-        bin_start1 = 0
-        bin_size1 = 1
-        num_bins1 = 10
+        bin_start1 = self.bin_spec1.start
+        bin_step1 = self.bin_spec1.step
+        num_bins1 = self.bin_spec1.num_bins
 
-        bin_start2 = 0
-        bin_size2 = 1
-        num_bins2 = 10
+        bin_start2 = self.bin_spec2.start
+        bin_step2 = self.bin_spec2.step
+        num_bins2 = self.bin_spec2.num_bins
 
         def mapper(value):
             if value[0][0] is None:
-                x = EMPTY_KEY
+                x = (None, )
             else:
-                x = (value[0][0] - bin_start1) // bin_size1
+                x = int((value[0][0] - bin_start1) // bin_step1)
                 x = max(min(x, num_bins1 - 1), 0)
 
             if value[0][1] is None:
-                y = EMPTY_KEY
+                y = (None, )
             else:
-                y = (value[0][1] - bin_start2) // bin_size2
+                y = int((value[0][1] - bin_start2) // bin_step2)
                 y = max(min(y, num_bins2 - 1), 0)
 
             return ((x, y), )
@@ -213,9 +215,11 @@ class Histogram2DJob(Job):
         df = self.dataset.get_sample_df(self.sample.index)
         rdd = df.rdd.map(lambda row: ((row[grouping_name1], row[grouping_name2]), ))
 
-        result = rdd.map(mapper).countByKey()
+        counts = list(rdd.map(mapper).countByKey().items())
+        
+        print(counts)
 
-        print(result)
+        return counts
 
     def to_json(self):
         return {'id': self.id, 'numRows': self.sample.num_rows}
