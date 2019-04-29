@@ -37,23 +37,58 @@ class JobQueue:
             if job.query.id == query_id:
                 job.pause()
 
-        self.reorder()
-
     def resume_by_query_id(self, query_id):
         for job in self.queue:
             if job.query.id == query_id:
                 job.resume()
         
-        self.reorder()
+    # def reorder(self):
+    #     def cmp(a, b):
+    #         if a.state != b.state:
+    #             if a.state == JobState.Paused:
+    #                 return 1                
+    #             return -1
 
-    def reorder(self):
-        def cmp(a, b):
-            if a.state != b.state:
-                if a.state == JobState.Paused:
-                    return 1                
-                return -1
+    #         return 0
 
-            return 0
+    #     self.queue.sort(key=cmp_to_key(cmp))
 
-        self.queue.sort(key=cmp_to_key(cmp))
+    def reschedule(self, queries, mode = 'roundrobin'):
+
+        order = {}
+        for i, query in enumerate(queries):
+            order[query['id']] = i
+
+        if mode == 'roundrobin':
+            def cmp(a, b):
+                if a.state != b.state:
+                    if a.state == JobState.Paused:
+                        return 1
+                    return -1
+
+                if a.sample.index != b.sample.index:
+                    return a.sample.index - b.sample.index
+
+                ordera = order[a.query.id] if a.query.id in order else order[a.query.client_id]
+                orderb = order[b.query.id] if b.query.id in order else order[b.query.client_id]
+
+                return ordera - orderb
+
+            self.queue.sort(key=cmp_to_key(cmp))
+        else:
+            print(order)
+            def cmp(a, b):
+                if a.state != b.state:
+                    if a.state == JobState.Paused:
+                        return 1
+                    return -1
+
+                ordera = order[a.query.id] if a.query.id in order else order[a.query.client_id]
+                orderb = order[b.query.id] if b.query.id in order else order[b.query.client_id]
+
+                return ordera - orderb
+
+            self.queue.sort(key=cmp_to_key(cmp))
+            
+
 

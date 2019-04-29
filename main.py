@@ -58,12 +58,17 @@ def schema(sid):
     })
 
 @sio.on('REQ/query')
-def query(sid, query_json, priority):
-    print(f'Incoming query from {sid} {query_json}')
+def query(sid, data):
+    query_json = data['query']
+    queue_json = data['queue']
+
+    print(f'Incoming query from {sid} {query_json} {queue_json}')
     query = Query.from_json(query_json, dataset, sid)
     client_query_id = query_json['id']
+    query.client_id = client_query_id
 
     job_queue.append(query.get_jobs())
+    job_queue.reschedule(queue_json['queries'], queue_json['mode'])
 
     sio.emit('RES/query', {
         'clientQueryId': client_query_id, 
@@ -71,16 +76,23 @@ def query(sid, query_json, priority):
     })
 
 @sio.on('REQ/query/pause')
-def query_pause(sid, query_json):
+def query_pause(sid, data):
+    query_json = data['query']
+    queue_json = data['queue']
     query_id = query_json['id']
     
     job_queue.pause_by_query_id(query_id)
+    job_queue.reschedule(queue_json['queries'], queue_json['mode'])
+
 
 @sio.on('REQ/query/resume')
-def query_pause(sid, query_json):
+def query_pause(sid, data):
+    query_json = data['query']
+    queue_json = data['queue']
     query_id = query_json['id']
     
     job_queue.resume_by_query_id(query_id)
+    job_queue.reschedule(queue_json['queries'], queue_json['mode'])
 
 @sio.on('REQ/query/delete')
 def query_delete(sid, query_json):
@@ -88,6 +100,10 @@ def query_delete(sid, query_json):
     
     job_queue.remove_by_query_id(query_id)
 
+
+@sio.on('REQ/queue/reschedule')
+def queue_reschedule(sid, queue_json):
+    job_queue.reschedule(queue_json['queries'], queue_json['mode'])
 
 @sio.on('kill')
 def kill(sid):
