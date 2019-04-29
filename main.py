@@ -28,7 +28,9 @@ def run_queue():
     while True:
         if len(job_queue) > 0 and job_queue.peep().state == JobState.Running:
             job = job_queue.dequeue()
+            sio.emit('STATUS/job/start', job.query.to_json())
             res = job.run(spark)
+            sio.emit('STATUS/job/end', job.query.to_json())
             sio.emit('result', {
                 'query': job.query.to_json(),
                 'job': job.to_json(),

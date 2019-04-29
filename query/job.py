@@ -216,8 +216,6 @@ class Histogram2DJob(Job):
         rdd = df.rdd.map(lambda row: ((row[grouping_name1], row[grouping_name2]), ))
 
         counts = list(rdd.map(mapper).countByKey().items())
-        
-        print(counts)
 
         return counts
 

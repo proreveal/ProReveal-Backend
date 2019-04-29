@@ -12,6 +12,9 @@ class Query:
         self.shuffle = shuffle
         Query.id += 1
 
+    def to_json(self):
+        return {'id': self.id, 'clientId': self.client_id}
+
     @staticmethod
     def from_json(json, dataset, client_id):
         type_string = json['type']
