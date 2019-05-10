@@ -15,7 +15,8 @@ version = '0.1.0'
 spark = SparkSession.builder.appName(f'ProReveal Spark Engine {version}')\
      .getOrCreate()
 
-dataset = Dataset(spark, 'd:\\flights\\blocks2')
+#dataset = Dataset(spark, 'd:\\flights\\blocks2')
+dataset = Dataset(spark, 'hdfs://147.46.241.90:9010/flights/flights')
 dataset.load()
 
 sio = socketio.Server()

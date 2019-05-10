@@ -123,3 +123,4 @@ dmypy.json
 .pyre/
 
 metastore_db
+/run.cmd

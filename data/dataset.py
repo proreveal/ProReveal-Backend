@@ -1,5 +1,6 @@
 import os
 import json
+import re
 
 from pyspark.sql.types import StructType, StructField
 from .field import FieldTrait
@@ -15,9 +16,24 @@ class Dataset:
         self.spark = spark
         self.path = path
         self.fields = []        
+        self.is_hdfs = path.startswith('hdfs')
+
+        if self.is_hdfs:
+            p = '(?:hdfs.*://)?(?P<host>[^:/ ]+).?(?P<port>[0-9]*).*'
+            m = re.search(p, self.path)
+
+            self.hdfs_host = m.group('host')
+            self.hdfs_port = int(m.group('port'))
     
     def load(self):
-        self.metadata = json.load(open(os.path.join(self.path, 'metadata.json')))
+        if not self.is_hdfs:
+            metadata = json.load(open(os.path.join(self.path, 'metadata.json')))
+        else:
+            metadata_rdd = self.spark.read.text(self.path + '/metadata.json')
+            metadata_json = ''.join([row.value.strip() for row in metadata_rdd.collect()])
+            metadata = json.loads(metadata_json)
+
+        self.metadata = metadata
 
         self.fields = []
         for field in self.metadata['header']:
@@ -50,7 +66,7 @@ class Dataset:
     def get_sample_df(self, sid):
         df = self.spark.read.format('csv').option('header', 'false')\
             .schema(self.get_spark_schema())\
-            .load(self.metadata['output_files'][sid]['path'])
+            .load(os.path.join(self.path, self.metadata['output_files'][sid]['path']))
 
         return df
     
