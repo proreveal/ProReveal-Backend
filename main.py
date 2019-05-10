@@ -44,7 +44,12 @@ forever = eventlet.spawn(run_queue)
 
 @sio.on('connect')
 def connect(sid, environ):
-    sio.emit('welcome', f'Welcome from ProReveal Spark Engine {version}')
+    sio.emit('welcome', {
+        'version': version,
+        'sparkVersion': spark.version,
+        'master': spark.sparkContext.master,
+        'uiWebUrl': spark.sparkContext.uiWebUrl
+    })
 
 @sio.on('disconnect')
 def disconnect(sid):
