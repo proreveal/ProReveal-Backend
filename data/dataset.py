@@ -2,7 +2,7 @@ import os
 import json
 import re
 
-from pyspark.sql.types import StructType, StructField
+from pyspark.sql.types import StructType, StructField, StringType
 from .field import FieldTrait
 
 class Sample:
@@ -41,6 +41,7 @@ class Dataset:
         
         self.samples = [Sample(i, sample['path'], sample['num_rows']) for i, sample in enumerate(self.metadata['output_files'])]
 
+
         num_rows = 0
         for sample in self.samples:
             num_rows += sample.num_rows
@@ -66,7 +67,15 @@ class Dataset:
     def get_sample_df(self, sid):
         df = self.spark.read.format('csv').option('header', 'false')\
             .schema(self.get_spark_schema())\
-            .load(os.path.join(self.path, self.metadata['output_files'][sid]['path']))
+            .load(self.path + '/' + self.metadata['output_files'][sid]['path'])
 
         return df
     
+    def get_df(self):
+        paths = [sample.path for sample in self.samples]
+
+        df = self.spark.read.format('csv').option('header', 'false')\
+            .schema(self.get_spark_schema())\
+            .load([self.path + '/' + path for path in paths])
+
+        return df

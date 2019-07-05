@@ -11,12 +11,11 @@ class JobState(Enum):
 class Job:
     id = 1
 
-    def __init__(self, client_id):
+    def __init__(self, index):
         self.id = Job.id
+        self.index = index
         self.state = JobState.Running
         Job.id += 1
-
-        self.client_id = client_id
 
     def resume(self):
         self.state = JobState.Running
@@ -27,9 +26,37 @@ class Job:
     def to_json(self):
         return {'id': self.id}
 
+class SelectJob(Job):
+    def __init__(self, index, sample, where, query, dataset, limit=100):
+        super().__init__(index)
+
+        self.sample = sample
+        #self.idx_from = idx_from    
+        #self.idx_to = idx_to
+        self.where = where
+        self.query = query
+        self.dataset = dataset        
+        self.limit = limit
+
+    def run(self, spark):
+        df = self.dataset.get_sample_df(self.sample.index)
+
+        #idx_from = self.idx_from
+        #idx_to = self.idx_to
+        
+        rows = df.filter(self.where.to_sql()).take(self.limit) #.rdd \
+            #.zipWithIndex() \
+            #.filter(lambda x: idx_from <= x[1] and x[1] < idx_to) \
+            #.map(lambda x: x[0])
+
+        return rows#.collect()        
+
+    def to_json(self):
+        return {'id': self.id, 'numRows': self.sample.num_rows}
+
 class AggregateJob(Job):
-    def __init__(self, sample, target, grouping, where, query, dataset, client_id):
-        super().__init__(client_id)
+    def __init__(self, index, sample, target, grouping, where, query, dataset):
+        super().__init__(index)
 
         self.sample = sample
         self.target = target
@@ -90,8 +117,8 @@ class AggregateJob(Job):
         return {'id': self.id, 'numRows': self.sample.num_rows}
 
 class Frequency1DJob(Job):
-    def __init__(self, sample, grouping, where, query, dataset, client_id):
-        super().__init__(client_id)
+    def __init__(self, index, sample, grouping, where, query, dataset):
+        super().__init__(index)
 
         self.sample = sample
         self.grouping = grouping
@@ -113,8 +140,8 @@ class Frequency1DJob(Job):
 
 
 class Frequency2DJob(Job):
-    def __init__(self, sample, grouping1, grouping2, where, query, dataset, client_id):
-        super().__init__(client_id)
+    def __init__(self, index, sample, grouping1, grouping2, where, query, dataset):
+        super().__init__(index)
 
         self.sample = sample
         self.grouping1 = grouping1
@@ -138,8 +165,8 @@ class Frequency2DJob(Job):
         return {'id': self.id, 'numRows': self.sample.num_rows}
 
 class Histogram1DJob(Job):
-    def __init__(self, sample, grouping, bin_spec, where, query, dataset, client_id):
-        super().__init__(client_id)
+    def __init__(self, index, sample, grouping, bin_spec, where, query, dataset):
+        super().__init__(index)
 
         self.sample = sample
         self.grouping = grouping
@@ -173,8 +200,8 @@ class Histogram1DJob(Job):
         return {'id': self.id, 'numRows': self.sample.num_rows}
 
 class Histogram2DJob(Job):
-    def __init__(self, sample, grouping1, bin_spec1, grouping2, bin_spec2, where, query, dataset, client_id):
-        super().__init__(client_id)
+    def __init__(self, index, sample, grouping1, bin_spec1, grouping2, bin_spec2, where, query, dataset):
+        super().__init__(index)
 
         self.sample = sample
         self.grouping1 = grouping1

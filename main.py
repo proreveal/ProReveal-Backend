@@ -16,8 +16,12 @@ spark = SparkSession.builder.appName(f'ProReveal Spark Engine {version}')\
      .getOrCreate()
 
 #dataset = Dataset(spark, 'd:\\flights\\blocks2')
-dataset = Dataset(spark, 'hdfs://147.46.241.90:9010/flights/flights')
+#dataset = Dataset(spark, 'hdfs://147.46.241.90:9010/flights/flights')
+dataset = Dataset(spark, 'hdfs://147.46.241.90:9010/gaia_batches')
 dataset.load()
+
+#print(dataset.get_spark_schema())
+#dataset.get_sample_df(0).show()
 
 sio = socketio.Server()
 app = socketio.WSGIApp(sio)
@@ -53,7 +57,9 @@ def connect(sid, environ):
 
 @sio.on('disconnect')
 def disconnect(sid):
-    job_queue.remove_by_client_id(sid)
+    removed_jobs = job_queue.remove_by_client_socket_id(sid)
+    print(sid, 'disconnected')
+    print(removed_jobs, 'jobs removed')
 
 @sio.on('REQ/schema')
 def schema(sid):
@@ -69,9 +75,8 @@ def query(sid, data):
     queue_json = data['queue']
 
     print(f'Incoming query from {sid} {query_json} {queue_json}')
-    query = Query.from_json(query_json, dataset, sid)
     client_query_id = query_json['id']
-    query.client_id = client_query_id
+    query = Query.from_json(query_json, dataset, sid, client_query_id)
 
     job_queue.append(query.get_jobs())
     job_queue.reschedule(queue_json['queries'], queue_json['mode'])

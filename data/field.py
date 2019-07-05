@@ -1,5 +1,5 @@
 from enum import Enum
-from pyspark.sql.types import DoubleType, IntegerType, StringType
+from pyspark.sql.types import DoubleType, LongType, StringType
 
 class DataType(Enum):
     String = 'string'
@@ -47,7 +47,7 @@ class FieldTrait:
 
     def get_pyspark_sql_type(self):
         if self.data_type is DataType.Integer:
-            return IntegerType
+            return LongType
         elif self.data_type is DataType.Float:
             return DoubleType
         elif self.data_type is DataType.String:

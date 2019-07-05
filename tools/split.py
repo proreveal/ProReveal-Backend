@@ -3,6 +3,8 @@ import glob
 import os
 import json
 import random
+import pandas as pd
+import csv
 
 from tqdm import tqdm
 
@@ -13,6 +15,7 @@ parser.add_argument('output_path', metavar='<output path>', type=str, help='Path
 parser.add_argument('--num-rows', metavar='N', type=int, help='Number of rows in each mini-batch')
 parser.add_argument('--num-batches', metavar='N', type=int, help='Number of mini-batches')
 parser.add_argument('--preseve-header', dest='skip_header', action='store_const', const=False, default=True, help='preserve the first line of a CSV')
+parser.add_argument('--fields', metavar='A,B,C,D', type=str, default='', help='Fields to use')
 
 args = parser.parse_args()
 
@@ -20,11 +23,12 @@ def create_directory(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-def write(oid, buffer):    
+def write(oid, buffer):
     output_path = os.path.join(args.output_path, f'{oid}.csv')
-    with open(output_path, 'w', encoding='utf8') as fout:
+    with open(output_path, 'w', encoding='utf8', newline='') as fout:
+        writer = csv.writer(fout)
         for line in buffer:
-            print(line, file=fout, end='')
+            writer.writerow(line)            
             
     return output_path
 
@@ -66,41 +70,43 @@ def main():
         'output_files': [],
         'header': None
     }
-
+    # E:\gaia\cdn.gea.esac.esa.int\Gaia\gdr2\gaia_source\csv\GaiaSource-1824978848714654592-1824998712986627584.csv
+    # python tools/split.py --num-rows 300000 --fields source_id,ra,ra_error,dec,dec_error,parallax,parallax_error,phot_g_mean_mag,bp_rp,bp_g,radial_velocity,radial_velocity_error,phot_variable_flag,teff_val,a_g_val E:\gaia\cdn.gea.esac.esa.int\Gaia\gdr2\gaia_source\csv\*.csv e:\gaia_batches
+    
     create_directory(args.output_path)
 
     if args.num_rows:
+        buffer = []
         for input_index, input_path in enumerate(tqdm(glob.glob(args.input_path))):
             metadata['input_files'].append(input_path)
 
-            with open(input_path) as fin:
-                count = 0
-                buffer = []
-                for i, line in enumerate(fin.readlines()):
-                    if args.skip_header and i == 0:
-                        if header is None:
-                            header = line
+            csv = pd.read_csv(input_path)
 
-                        continue
-                    
-                    count += 1
-                    buffer.append(line)
+            csv = csv.fillna('')
+            if args.fields:
+                header = args.fields.split(',')
+                csv = csv[header]
+            else:
+                header = csv.columns
 
-                    if count % args.num_rows == 0:
-                        output_path = write(oid, buffer)
-                        metadata['output_files'].append(output_meta(oid, output_path, len(buffer)))
-                        oid += 1
-                        buffer = []
-
-            if len(buffer) > 0:
-                output_path = write(oid, buffer)
-                metadata['output_files'].append(output_meta(oid, output_path, len(buffer)))
+            buffer.extend(csv.values.tolist())
+            
+            while len(buffer) >= args.num_rows:    
+                output_path = write(oid, buffer[:args.num_rows])
+                metadata['output_files'].append(output_meta(oid, output_path, args.num_rows))
                 oid += 1
 
-            if header is not None:
-                metadata['header'] = [{"name": name.lstrip('\"').rstrip('\"')} for name in header.strip().split(',') if len(name) > 0]
+                buffer = buffer[args.num_rows:]
+
+        if len(buffer) > 0:
+            output_path = write(oid, buffer)
+            metadata['output_files'].append(output_meta(oid, output_path, len(buffer)))
+            oid += 1
+
+        if header is not None:
+            metadata['header'] = [{"name": name.lstrip('\"').rstrip('\"')} for name in header]
             
-            write_metadata(metadata)
+        write_metadata(metadata)
 
     elif args.num_batches:       
         # empty and create all mini-batches
