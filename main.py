@@ -11,6 +11,8 @@ from data import Dataset
 from query import *
 from job_queue import JobQueue
 
+import os
+
 version = '0.1.0'
 spark = SparkSession.builder.appName(f'ProReveal Spark Engine {version}')\
      .getOrCreate()
@@ -36,7 +38,7 @@ def run_queue():
             sio.emit('STATUS/job/start', job.query.to_json())
             res = job.run(spark)
             sio.emit('STATUS/job/end', job.query.to_json())
-            sio.emit('result', {
+            sio.emit('result', {                
                 'query': job.query.to_json(),
                 'job': job.to_json(),
                 'result': res
@@ -64,6 +66,7 @@ def disconnect(sid):
 @sio.on('REQ/schema')
 def schema(sid):
     sio.emit('RES/schema', {
+        'name': os.path.basename(os.path.normpath(dataset.path)),
         'schema': dataset.get_json_schema(),
         'numRows': dataset.num_rows,
         'numBatches': len(dataset.samples)        

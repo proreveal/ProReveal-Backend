@@ -77,8 +77,12 @@ class SelectQuery(Query):
     
     def get_jobs(self):
         jobs = []
+        samples = self.dataset.samples[:]
 
-        for i, sample in enumerate(self.dataset.samples):
+        if self.shuffle:
+            random.shuffle(samples)
+
+        for i, sample in enumerate(samples):
             jobs.append(SelectJob(
                 i,
                 sample,
@@ -86,9 +90,6 @@ class SelectQuery(Query):
                 #self.idx_to,
                 sample, self.where, self, self.dataset
             ))
-
-        if self.shuffle:
-            random.shuffle(jobs)
 
         return jobs
 
@@ -106,15 +107,16 @@ class AggregateQuery(Query):
 
     def get_jobs(self):
         jobs = []
-        
-        for i, sample in enumerate(self.dataset.samples):
+        samples = self.dataset.samples[:]
+
+        if self.shuffle:
+            random.shuffle(samples)
+
+        for i, sample in enumerate(samples):
             jobs.append(AggregateJob(
                 i, sample, self.target, self.grouping, self.where, 
                 self, self.dataset
             ))
-
-        if self.shuffle:
-            random.shuffle(jobs)
 
         return jobs
 
@@ -131,14 +133,15 @@ class Frequency1DQuery(Query):
 
     def get_jobs(self):
         jobs = []
-        
-        for i, sample in enumerate(self.dataset.samples):
+        samples = self.dataset.samples[:]
+
+        if self.shuffle:
+            random.shuffle(samples)
+
+        for i, sample in enumerate(samples):
             jobs.append(Frequency1DJob(
                 i, sample, self.grouping, self.where, self, self.dataset
             ))
-
-        if self.shuffle:
-            random.shuffle(jobs)
 
         return jobs
 
@@ -156,14 +159,15 @@ class Frequency2DQuery(Query):
 
     def get_jobs(self):
         jobs = []
-        
-        for i, sample in enumerate(self.dataset.samples):
+        samples = self.dataset.samples[:]
+
+        if self.shuffle:
+            random.shuffle(samples)
+
+        for i, sample in enumerate(samples):
             jobs.append(Frequency2DJob(
                 i, sample, self.grouping1, self.grouping2, self.where, self, self.dataset
             ))
-
-        if self.shuffle:
-            random.shuffle(jobs)
 
         return jobs
 
@@ -197,15 +201,16 @@ class Histogram1DQuery(Query):
         
     def get_jobs(self):
         jobs = []
-        
-        for i, sample in enumerate(self.dataset.samples):
+        samples = self.dataset.samples[:]
+
+        if self.shuffle:
+            random.shuffle(samples)
+
+        for i, sample in enumerate(samples):
             jobs.append(Histogram1DJob(
                 i, sample, self.grouping, self.bin_spec, self.where, self,
                 self.dataset
             ))
-
-        if self.shuffle:
-            random.shuffle(jobs)
 
         return jobs
 
@@ -226,15 +231,16 @@ class Histogram2DQuery(Query):
         
     def get_jobs(self):
         jobs = []
-        
-        for i, sample in enumerate(self.dataset.samples):
+        samples = self.dataset.samples[:]
+
+        if self.shuffle:
+            random.shuffle(samples)
+
+        for i, sample in enumerate(samples):
             jobs.append(Histogram2DJob(
                 i, sample, self.grouping1, self.bin_spec1, 
                 self.grouping2, self.bin_spec2, self.where, self,
                 self.dataset
             ))
-
-        if self.shuffle:
-            random.shuffle(jobs)
 
         return jobs
