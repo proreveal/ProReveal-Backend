@@ -8,9 +8,19 @@ class Session:
         
     def __init__(self):
         self.code = Session.generate_code()
+        self.sids = []        
 
-    def json(self):
+    def to_json(self):
         return {
-            'code': self.code
+            'code': self.code,
+            'engineType': 'remote'
         }
+    
+    def leave_sid(self, sid):
+        self.sids = [s for s in self.sids if s != sid]
+
+    def enter_sid(self, sid):
+        if sid not in self.sids:
+            self.sids.append(sid)
+
 

@@ -65,7 +65,7 @@ class AggregateJob(Job):
         self.query = query
         self.dataset = dataset
 
-    def run(self, spark):
+    def run_spark(self, spark):
         df = self.dataset.get_sample_df(self.sample.index)
 
         if self.where is not None:
@@ -126,13 +126,21 @@ class Frequency1DJob(Job):
         self.query = query
         self.dataset = dataset        
 
-    def run(self, spark):
+    def run_spark(self, spark):
         df = self.dataset.get_sample_df(self.sample.index)
 
         if self.where is not None:
             df = df.filter(self.where.to_sql())
 
         counts = df.groupBy(self.grouping.name).count().collect()
+        return counts
+
+    def run(self):
+        df = self.dataset.df.iloc[self.sample.start:self.sample.end]
+
+        counts = df.groupby(self.grouping.name).size()
+        counts = [[index, count] for index, count in counts.items()]            
+        
         return counts
 
     def to_json(self):
@@ -150,8 +158,7 @@ class Frequency2DJob(Job):
         self.query = query
         self.dataset = dataset
 
-    
-    def run(self, spark):
+    def run_spark(self, spark):
         df = self.dataset.get_sample_df(self.sample.index)
 
         if self.where is not None:
@@ -175,7 +182,7 @@ class Histogram1DJob(Job):
         self.query = query
         self.dataset = dataset
     
-    def run(self, spark):        
+    def run_spark(self, spark):        
         bin_start = self.bin_spec.start
         bin_step = self.bin_spec.step
         num_bins = self.bin_spec.num_bins
@@ -212,7 +219,7 @@ class Histogram2DJob(Job):
         self.query = query
         self.dataset = dataset
     
-    def run(self, spark):
+    def run_spark(self, spark):
         bin_start1 = self.bin_spec1.start
         bin_step1 = self.bin_spec1.step
         num_bins1 = self.bin_spec1.num_bins

@@ -57,7 +57,9 @@ def run_queue():
         if len(job_queue) > 0 and job_queue.peep().state == JobState.Running:
             job = job_queue.dequeue()
             sio.emit('STATUS/job/start', job.query.to_json())
-            res = job.run(spark)
+
+            res = backend.run(job)            
+
             sio.emit('STATUS/job/end', job.query.to_json())
             sio.emit('result', {                
                 'query': job.query.to_json(),
@@ -65,7 +67,7 @@ def run_queue():
                 'result': res
             }) # to 
 
-        eventlet.sleep(0)
+        eventlet.sleep(1)
 
 forever = eventlet.spawn(run_queue)
 
@@ -92,8 +94,13 @@ def restore(sid, data):
         session = session[0]
         sio.emit('RES/restore', {
             'success': True,
-            'session': session.json()
+            'session': session.to_json()
         }, to=sid)
+
+        for ses in sessions:
+            ses.leave_sid(sid)
+
+        session.enter_sid(sid)
 
 @sio.on('REQ/schema')
 def schema(sid):

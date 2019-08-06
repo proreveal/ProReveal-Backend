@@ -59,7 +59,7 @@ class Query:
             where, dataset, client_socket_id, client_id)
 
         elif type_string == SelectQuery.name:
-            return SelectQuery(json['from'], json['to'], where, datasetclient_socket_id)
+            return SelectQuery(json['from'], json['to'], where, dataset, client_socket_id)
 
         raise f'Unknown query type: {json}'
     

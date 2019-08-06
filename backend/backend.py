@@ -30,11 +30,15 @@ class SparkBackend(BackendBase):
         spark = self.spark
         return {
             'version': config['server']['version'],
+            'backend': 'spark',
             'sparkVersion': spark.version,
             'master': spark.sparkContext.master,
             'uiWebUrl': spark.sparkContext.uiWebUrl
         }
 
+    def run(self, job):
+        return job.run(self.spark)
+            
 class LocalBackend(BackendBase):
     config_name = 'local'
 
@@ -49,5 +53,9 @@ class LocalBackend(BackendBase):
     def get_welcome(self):
         config = self.config
         return {
-            'version': config['server']['version']
+            'version': config['server']['version'],
+            'backend': 'local'
         }
+
+    def run(self, job):
+        return job.run()

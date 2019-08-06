@@ -2,6 +2,8 @@ import os
 import json
 import re
 
+import pandas as pd
+
 from .field import FieldTrait
 
 class LocalSample:
@@ -23,6 +25,8 @@ class LocalDataset:
         with open(self.path, encoding='utf8') as fin:
             self.data = json.load(fin)
         
+        self.df = pd.DataFrame.from_records(self.data)
+
         with open(self.metadata_path, encoding='utf8') as fin:
             self.metadata = json.load(fin)
 
@@ -32,6 +36,7 @@ class LocalDataset:
         
         num_rows = len(self.data)
         self.samples = [LocalSample(i, s, min(s + sample_rows, num_rows)) for i, s in enumerate(range(0, num_rows, sample_rows))]
+        self.num_rows = num_rows
 
     def get_field_by_name(self, name):
         for field in self.fields:
