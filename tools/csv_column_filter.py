@@ -23,21 +23,19 @@ def main():
 
     for input_path in tqdm(glob.glob(args.input_path)):
         csv_name = os.path.basename(input_path)
-
+        tqdm.write(csv_name)
         csv = pd.read_csv(input_path)
-        csv = csv.fillna('')
             
         header = args.fields.split(',')
         csv = csv[header]
 
         csv.to_csv(os.path.join(args.output_path, csv_name), index=False)
-
-        size = os.stat(input_path).st_size
-
-        print(f'{csv_name},{size}', file=logfile)
+        
 
         if args.remove:
-            os.remove(input_path)
+           size = os.stat(input_path).st_size
+           print(f'{csv_name},{size}', file=logfile)
+           os.remove(input_path)
 
     logfile.close()
 
