@@ -1,33 +1,54 @@
+import argparse
+import configparser
+import logging
+
 import json
 
 import socketio
 import eventlet
 
-eventlet.monkey_patch()
+#eventlet.monkey_patch()
 
-from pyspark.sql import SparkSession
-
-from data import Dataset
 from query import *
 from job_queue import JobQueue
+from session import Session
+from backend import LocalBackend, SparkBackend
 
 import os
 
-version = '0.1.0'
-spark = SparkSession.builder.appName(f'ProReveal Spark Engine {version}')\
-     .getOrCreate()
+version = '0.2.0'
 
-#dataset = Dataset(spark, 'd:\\flights\\blocks2')
-#dataset = Dataset(spark, 'hdfs://147.46.241.90:9010/flights/flights')
-dataset = Dataset(spark, 'hdfs://147.46.241.90:9010/gaia_batches')
-dataset.load()
+parser = argparse.ArgumentParser()
+parser.add_argument('config', help='A configuration file')
+args = parser.parse_args()
+
+config = configparser.ConfigParser()
+
+config.read(args.config)
+
+config.add_section('server')
+config.set('server', 'version', version)
+
+if config['backend'].get('type', LocalBackend.config_name) == SparkBackend.config_name:
+    logging.info('Using a Spark backend')
+    backend = SparkBackend(config)
+else:
+    logging.info('Using a local backend')
+    backend = LocalBackend(config)
+    
+dataset = backend.load(config['backend']['dataset'])
 
 #print(dataset.get_spark_schema())
 #dataset.get_sample_df(0).show()
 
-sio = socketio.Server()
+sio = socketio.Server(cors_allowed_origins='*')
 app = socketio.WSGIApp(sio)
 sock = eventlet.listen(('', 7999))
+
+sessions = []
+test_session = Session()
+test_session.code = 'ABC'
+sessions.append(test_session)
 
 job_queue = JobQueue()
 
@@ -42,26 +63,37 @@ def run_queue():
                 'query': job.query.to_json(),
                 'job': job.to_json(),
                 'result': res
-            })
-    
+            }) # to 
+
         eventlet.sleep(0)
 
 forever = eventlet.spawn(run_queue)
 
 @sio.on('connect')
 def connect(sid, environ):
-    sio.emit('welcome', {
-        'version': version,
-        'sparkVersion': spark.version,
-        'master': spark.sparkContext.master,
-        'uiWebUrl': spark.sparkContext.uiWebUrl
-    })
+    sio.emit('welcome', backend.get_welcome(), to=sid)
 
 @sio.on('disconnect')
 def disconnect(sid):
     removed_jobs = job_queue.remove_by_client_socket_id(sid)
     print(sid, 'disconnected')
     print(removed_jobs, 'jobs removed')
+
+@sio.on('REQ/restore')
+def restore(sid, data):
+    code = data['code'].upper()
+    
+    session = list(filter(lambda x: x.code == code, sessions))
+    if len(session) == 0:
+        sio.emit('RES/restore', {
+            'success': False
+        }, to=sid)
+    else:
+        session = session[0]
+        sio.emit('RES/restore', {
+            'success': True,
+            'session': session.json()
+        }, to=sid)
 
 @sio.on('REQ/schema')
 def schema(sid):
@@ -70,7 +102,7 @@ def schema(sid):
         'schema': dataset.get_json_schema(),
         'numRows': dataset.num_rows,
         'numBatches': len(dataset.samples)        
-    })
+    }, to=sid)
 
 @sio.on('REQ/query')
 def query(sid, data):
@@ -87,7 +119,7 @@ def query(sid, data):
     sio.emit('RES/query', {
         'clientQueryId': client_query_id, 
         'queryId': query.id
-    })
+    }, to=sid)
 
 @sio.on('REQ/query/pause')
 def query_pause(sid, data):
@@ -100,7 +132,7 @@ def query_pause(sid, data):
 
 
 @sio.on('REQ/query/resume')
-def query_pause(sid, data):
+def query_resume(sid, data):
     query_json = data['query']
     queue_json = data['queue']
     query_id = query_json['id']

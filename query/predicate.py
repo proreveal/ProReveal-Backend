@@ -1,4 +1,4 @@
-from data import DataType
+from dataset import DataType
 
 class Predicate:
 

@@ -2,18 +2,17 @@ import os
 import json
 import re
 
-from pyspark.sql.types import StructType, StructField, StringType
 from .field import FieldTrait
 
-class Sample:
+class SparkSample:
     def __init__(self, index, path, num_rows):
         self.index = index
         self.path = path
         self.num_rows = num_rows
 
-class Dataset:    
-    def __init__(self, spark, path):
-        self.spark = spark
+class SparkDataset:    
+    def __init__(self, backend, path):
+        self.backend = backend
         self.path = path
         self.fields = []        
         self.is_hdfs = path.startswith('hdfs')
@@ -39,7 +38,7 @@ class Dataset:
         for field in self.metadata['header']:
             self.fields.append(FieldTrait.from_json(field))
         
-        self.samples = [Sample(i, sample['path'], sample['num_rows']) for i, sample in enumerate(self.metadata['output_files'])]
+        self.samples = [SparkSample(i, sample['path'], sample['num_rows']) for i, sample in enumerate(self.metadata['output_files'])]
 
 
         num_rows = 0
@@ -56,6 +55,7 @@ class Dataset:
         return None
     
     def get_spark_schema(self):
+        from pyspark.sql.types import StructType, StructField, StringType
         schema = [StructField(field.name, field.get_pyspark_sql_type()())
             for field in self.fields]
         
