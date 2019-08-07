@@ -1,7 +1,14 @@
 import random
+import time
 
 from .job import *
 from .predicate import Predicate
+from accum import AggregateValue, AllAccumulator
+
+accum = AllAccumulator()
+
+def now():
+    return int(time.time() * 1000)
 
 class Query:
     id = 1
@@ -11,6 +18,13 @@ class Query:
         self.client_socket_id = client_socket_id
         self.client_id = client_id
         self.shuffle = shuffle
+
+        self.num_processed_rows = 0
+        self.num_processed_blocks = 0     
+        self.last_updated = now()
+        
+        self.result = {} # dict with keys
+
         Query.id += 1
 
     def to_json(self):
@@ -64,7 +78,13 @@ class Query:
         raise f'Unknown query type: {json}'
     
     def to_json(self):
-        return {'id': self.id}
+        return {
+            'id': self.id,
+            'numProcessedRows': self.num_processed_rows,
+            'numProcessedBlocks': self.num_processed_blocks,
+            'lastUpdated': self.last_updated,
+            'result': self.get_result()
+        }
 
 class SelectQuery(Query):
     name = 'SelectQuery'
@@ -120,6 +140,16 @@ class AggregateQuery(Query):
 
         return jobs
 
+def dict_to_list(dic):
+    res = []
+    for key, value in dic.items():
+        if isinstance(key, str):
+            key = ((key, ), )
+        
+        res.append(key + value.to_tuple())
+    
+    return res
+
 class Frequency1DQuery(Query):
     name = 'Frequency1DQuery'
     priority = 1
@@ -144,6 +174,18 @@ class Frequency1DQuery(Query):
             ))
 
         return jobs
+
+    def accumulate(self, res):
+        for name, count in res:
+            if name not in self.result:
+                self.result[name] = AggregateValue(0, 0, count, 0, 0, 0)
+            else:
+                partial = AggregateValue(0, 0, count, 0, 0, 0)
+
+                self.result[name] = accum.accumulate(self.result[name], partial)
+                
+    def get_result(self):
+        return dict_to_list(self.result)
 
 class Frequency2DQuery(Query):
     name = 'Frequency2DQuery'

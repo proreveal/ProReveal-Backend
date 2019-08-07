@@ -136,11 +136,12 @@ class Frequency1DJob(Job):
         return counts
 
     def run(self):
+        """ returns [['A', 10], ['B', 20]]"""
+
         df = self.dataset.df.iloc[self.sample.start:self.sample.end]
 
         counts = df.groupby(self.grouping.name).size()
-        counts = [[index, count] for index, count in counts.items()]            
-        
+        counts = [[index, count] for index, count in counts.items()]        
         return counts
 
     def to_json(self):
@@ -247,7 +248,7 @@ class Histogram2DJob(Job):
         grouping_name2 = self.grouping2.name
 
         df = self.dataset.get_sample_df(self.sample.index)
-        rdd = df.rdd.map(lambda row: ((row[grouping_name1], row[grouping_name2]), ))
+        rdd = df.rdd.map(lambda row: ((row[grouping_name1], row[grouping_name2]),))
 
         counts = list(rdd.map(mapper).countByKey().items())
 

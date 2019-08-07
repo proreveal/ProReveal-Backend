@@ -56,16 +56,26 @@ def run_queue():
     while True:
         if len(job_queue) > 0 and job_queue.peep().state == JobState.Running:
             job = job_queue.dequeue()
-            sio.emit('STATUS/job/start', job.query.to_json())
+            query = job.query
 
-            res = backend.run(job)            
+            sio.emit('STATUS/job/start', {'id': query.id, 
+                'numOngoingBlocks': 1, 
+                'numOngoingRows': job.sample.num_rows}) # TODO: room
+            # TODO show ongoing
 
-            sio.emit('STATUS/job/end', job.query.to_json())
-            sio.emit('result', {                
-                'query': job.query.to_json(),
-                'job': job.to_json(),
-                'result': res
-            }) # to 
+            res = backend.run(job) # unified format, [[a, 1], [b, 2]]
+            query.accumulate(res)
+            query.num_processed_blocks += 1
+            query.num_processed_rows += job.sample.num_rows
+            query.last_updated = now()
+            eventlet.sleep(1)
+
+            sio.emit('STATUS/job/end', {'id': query.id}) # TODO: room
+
+            # show result
+            sio.emit('result', { 
+                'query': job.query.to_json()
+            })  # TODO: room
 
         eventlet.sleep(1)
 
@@ -77,6 +87,10 @@ def connect(sid, environ):
 
 @sio.on('disconnect')
 def disconnect(sid):
+    for ses in sessions:
+        ses.leave_sid(sid)
+        sio.leave_room(sid, ses.code)
+
     removed_jobs = job_queue.remove_by_client_socket_id(sid)
     print(sid, 'disconnected')
     print(removed_jobs, 'jobs removed')
@@ -99,8 +113,10 @@ def restore(sid, data):
 
         for ses in sessions:
             ses.leave_sid(sid)
+            sio.leave_room(sid, ses.code)
 
         session.enter_sid(sid)
+        sio.enter_room(sid, session.code)
 
 @sio.on('REQ/schema')
 def schema(sid):
@@ -122,6 +138,8 @@ def query(sid, data):
 
     job_queue.append(query.get_jobs())
     job_queue.reschedule(queue_json['queries'], queue_json['mode'])
+
+    # TODO: add query to session
 
     sio.emit('RES/query', {
         'clientQueryId': client_query_id, 

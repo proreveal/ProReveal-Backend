@@ -10,6 +10,8 @@ class Session:
         self.code = Session.generate_code()
         self.sids = []        
 
+        self.alternate = False
+
     def to_json(self):
         return {
             'code': self.code,
