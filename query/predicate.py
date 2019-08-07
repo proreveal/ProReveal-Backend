@@ -1,7 +1,6 @@
 from dataset import DataType
 
 class Predicate:
-
     @staticmethod
     def from_json(pred_json):
         pred_type = pred_json['type']
@@ -21,7 +20,6 @@ class Predicate:
             return NumericEqualPredicate(field_name, pred_json['expected'])
 
         return None
-
 
 class NumericEqualPredicate(Predicate):
     def __init__(self, field_name, expected):

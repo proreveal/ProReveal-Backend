@@ -45,10 +45,9 @@ class JobQueue:
                 job.resume()
 
     def reschedule(self, queries, mode = 'roundrobin'):
-
         order = {}
         for i, query in enumerate(queries):
-            order[query['id']] = i
+            order[query.id] = i
 
         if mode == 'roundrobin':
             def cmp(a, b):
@@ -63,10 +62,10 @@ class JobQueue:
                 if a.index != b.index:
                     return a.index - b.index
 
-                ordera = order[a.query.id] if a.query.id in order else order[a.query.client_id]
-                orderb = order[b.query.id] if b.query.id in order else order[b.query.client_id]
+                ordera = order[a.query.id]
+                orderb = order[b.query.id]
 
-                return ordera - orderb
+                return orderb - ordera
 
             self.queue.sort(key=cmp_to_key(cmp))
         else:
@@ -79,10 +78,10 @@ class JobQueue:
                         return 1
                     return -1
 
-                ordera = order[a.query.id] if a.query.id in order else order[a.query.client_id]
-                orderb = order[b.query.id] if b.query.id in order else order[b.query.client_id]
+                ordera = order[a.query.id]
+                orderb = order[b.query.id]
 
-                return ordera - orderb
+                return orderb - ordera
 
             self.queue.sort(key=cmp_to_key(cmp))
             

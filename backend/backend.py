@@ -38,6 +38,9 @@ class SparkBackend(BackendBase):
 
     def run(self, job):
         return job.run(self.spark)
+
+    def stop(self):
+        self.spark.stop()
             
 class LocalBackend(BackendBase):
     config_name = 'local'
@@ -59,3 +62,6 @@ class LocalBackend(BackendBase):
 
     def run(self, job):
         return job.run()
+
+    def stop(self):
+        return

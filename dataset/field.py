@@ -42,7 +42,8 @@ class FieldTrait:
         self.name = name
 
     def to_json(self):
-        return {'name': self.name, 'dataType': self.data_type.value, 'vlType': self.vl_type.value}
+        return {'name': self.name, 'dataType': self.data_type.value, 
+        'vlType': self.vl_type.value}
 
     def get_pyspark_sql_type(self):
         # from pyspark.sql.types import DoubleType, LongType, StringType
@@ -86,7 +87,8 @@ class QuantitativeField(FieldTrait):
 
     def to_json(self):
         return {'name': self.name, 'dataType': self.data_type.value, 
-        'vlType': self.vl_type.value, 'min': self.min, 'max': self.max, 'num_bins': self.num_bins}
+        'vlType': self.vl_type.value, 'min': self.min, 'max': self.max, 
+        'numBins': self.num_bins}
 
 class CategoricalField(FieldTrait):
     pass

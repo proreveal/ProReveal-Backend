@@ -10,7 +10,6 @@ import eventlet
 #eventlet.monkey_patch()
 
 from query import *
-from job_queue import JobQueue
 from session import Session
 from backend import LocalBackend, SparkBackend
 
@@ -50,32 +49,40 @@ test_session = Session()
 test_session.code = 'ABC'
 sessions.append(test_session)
 
-job_queue = JobQueue()
+def get_session_by_sid(sid):
+    for ses in sessions:
+        if sid in ses.sids:
+            return ses
+    
+    return None
 
 def run_queue():    
     while True:
-        if len(job_queue) > 0 and job_queue.peep().state == JobState.Running:
-            job = job_queue.dequeue()
-            query = job.query
+        for session in sessions:
+            job_queue = session.job_queue
 
-            sio.emit('STATUS/job/start', {'id': query.id, 
-                'numOngoingBlocks': 1, 
-                'numOngoingRows': job.sample.num_rows}) # TODO: room
-            # TODO show ongoing
+            if len(job_queue) > 0 and job_queue.peep().state == JobState.Running:
+                job = job_queue.dequeue()
+                query = job.query
 
-            res = backend.run(job) # unified format, [[a, 1], [b, 2]]
-            query.accumulate(res)
-            query.num_processed_blocks += 1
-            query.num_processed_rows += job.sample.num_rows
-            query.last_updated = now()
-            eventlet.sleep(1)
+                sio.emit('STATUS/job/start', {'id': query.id, 
+                    'numOngoingBlocks': 1, 
+                    'numOngoingRows': job.sample.num_rows},
+                    room=session.code)
 
-            sio.emit('STATUS/job/end', {'id': query.id}) # TODO: room
+                res = backend.run(job) # unified format, [[a, 1], [b, 2]]
+                query.accumulate(res)
+                query.num_processed_blocks += 1
+                query.num_processed_rows += job.sample.num_rows
+                query.last_updated = now()
+                eventlet.sleep(1)
 
-            # show result
-            sio.emit('result', { 
-                'query': job.query.to_json()
-            })  # TODO: room
+                sio.emit('STATUS/job/end', {'id': query.id},
+                    room=session.code)
+
+                sio.emit('result', { 
+                    'query': job.query.to_json()
+                }, room=session.code)
 
         eventlet.sleep(1)
 
@@ -91,9 +98,9 @@ def disconnect(sid):
         ses.leave_sid(sid)
         sio.leave_room(sid, ses.code)
 
-    removed_jobs = job_queue.remove_by_client_socket_id(sid)
-    print(sid, 'disconnected')
-    print(removed_jobs, 'jobs removed')
+    # removed_jobs = job_queue.remove_by_client_socket_id(sid)
+    # print(sid, 'disconnected')
+    # print(removed_jobs, 'jobs removed')
 
 @sio.on('REQ/restore')
 def restore(sid, data):
@@ -108,7 +115,13 @@ def restore(sid, data):
         session = session[0]
         sio.emit('RES/restore', {
             'success': True,
-            'session': session.to_json()
+            'session': session.to_json(),
+            'metadata': {
+                'name': os.path.basename(os.path.normpath(dataset.path)),
+                'schema': dataset.get_json_schema(),
+                'numRows': dataset.num_rows,
+                'numBatches': len(dataset.samples)        
+            }
         }, to=sid)
 
         for ses in sessions:
@@ -118,67 +131,88 @@ def restore(sid, data):
         session.enter_sid(sid)
         sio.enter_room(sid, session.code)
 
-@sio.on('REQ/schema')
-def schema(sid):
-    sio.emit('RES/schema', {
-        'name': os.path.basename(os.path.normpath(dataset.path)),
-        'schema': dataset.get_json_schema(),
-        'numRows': dataset.num_rows,
-        'numBatches': len(dataset.samples)        
-    }, to=sid)
+@sio.on('REQ/login')
+def login(sid, data):
+    code = data['code'].upper()
+    
+    session = list(filter(lambda x: x.code == code, sessions))
+    if len(session) == 0:
+        sio.emit('RES/login', {
+            'success': False
+        }, to=sid)
+    else:
+        session = session[0]
+        sio.emit('RES/login', {
+            'success': True,
+            'code': session.code
+        }, to=sid)
 
 @sio.on('REQ/query')
 def query(sid, data):
+    session = get_session_by_sid(sid)
+    if session is None:
+        return
+
     query_json = data['query']
-    queue_json = data['queue']
 
-    print(f'Incoming query from {sid} {query_json} {queue_json}')
-    client_query_id = query_json['id']
-    query = Query.from_json(query_json, dataset, sid, client_query_id)
+    print(f'Incoming query from {sid} {query_json}')
+    query = Query.from_json(query_json, dataset, sid)
 
-    job_queue.append(query.get_jobs())
-    job_queue.reschedule(queue_json['queries'], queue_json['mode'])
-
-    # TODO: add query to session
+    session.add_query(query)
 
     sio.emit('RES/query', {
-        'clientQueryId': client_query_id, 
-        'queryId': query.id
+        'query': query.to_json()
     }, to=sid)
 
 @sio.on('REQ/query/pause')
 def query_pause(sid, data):
-    query_json = data['query']
-    queue_json = data['queue']
-    query_id = query_json['id']
-    
-    job_queue.pause_by_query_id(query_id)
-    job_queue.reschedule(queue_json['queries'], queue_json['mode'])
+    session = get_session_by_sid(sid)
+    if session is None:
+        return
 
+    query_json = data['query']
+    #queue_json = data['queue']
+    query_id = query_json['id']
+
+    if session.get_query(query_id) is not None:
+        session.pause_query(session.get_query(query_id))
+    
 
 @sio.on('REQ/query/resume')
 def query_resume(sid, data):
+    session = get_session_by_sid(sid)
+    if session is None:
+        return
+
     query_json = data['query']
-    queue_json = data['queue']
+    #queue_json = data['queue']
     query_id = query_json['id']
     
-    job_queue.resume_by_query_id(query_id)
-    job_queue.reschedule(queue_json['queries'], queue_json['mode'])
+    if session.get_query(query_id) is not None:
+        session.resume_query(session.get_query(query_id))
 
 @sio.on('REQ/query/delete')
 def query_delete(sid, query_json):
+    session = get_session_by_sid(sid)
+    if session is None:
+        return
+
     query_id = query_json['id']
-    
-    job_queue.remove_by_query_id(query_id)
+    if session.get_query(query_id) is not None:
+        session.resume_query(session.get_query(query_id))
 
 
 @sio.on('REQ/queue/reschedule')
 def queue_reschedule(sid, queue_json):
-    job_queue.reschedule(queue_json['queries'], queue_json['mode'])
+    session = get_session_by_sid(sid)
+    if session is None:
+        return
+
+    session.job_queue.reschedule(queue_json['queries'], queue_json['mode'])
 
 @sio.on('kill')
 def kill(sid):
-    spark.stop()
+    backend.stop()
     forever.kill()
     sock.close()
     raise SystemExit()
