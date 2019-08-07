@@ -22,7 +22,7 @@ class Session:
         return {
             'code': self.code,
             'engineType': 'remote',
-            'queries': 123
+            'queries': [q.to_json() for q in self.queries]
         }
     
     def leave_sid(self, sid):
