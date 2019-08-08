@@ -16,6 +16,8 @@ def dict_to_list(dic):
     for key, value in dic.items():
         if isinstance(key, str):
             key = ((key, ), )
+        else:
+            key = (key, )
         
         res.append(key + value.to_tuple())
     
@@ -235,6 +237,27 @@ class Frequency2DQuery(Query):
             ))
 
         return jobs
+
+    def accumulate(self, res):
+        for name, count in res:
+            if name not in self.result:
+                self.result[name] = AggregateValue(0, 0, count, 0, 0, 0)
+            else:
+                partial = AggregateValue(0, 0, count, 0, 0, 0)
+
+                self.result[name] = accum.accumulate(self.result[name], partial)
+
+    def get_result(self):
+        return dict_to_list(self.result)
+
+    def to_json(self):
+        json = super().to_json()
+        json.update({
+            'grouping1': self.grouping1.to_json(),
+            'grouping2': self.grouping2.to_json(),
+            'type': Frequency2DQuery.name
+        })
+        return json
 
 class BinSpec:
     def __init__(self, start, end, step, num_bins):

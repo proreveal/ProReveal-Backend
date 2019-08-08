@@ -60,7 +60,7 @@ def run_queue():
     while True:
         for session in sessions:
             print(session.queries)
-            
+
             job_queue = session.job_queue
 
             if len(job_queue) > 0 and job_queue.peep().state == JobState.Running:
@@ -201,7 +201,7 @@ def query_delete(sid, query_json):
 
     query_id = query_json['id']
     if session.get_query(query_id) is not None:
-        session.resume_query(session.get_query(query_id))
+        session.remove_query(session.get_query(query_id))
 
 
 @sio.on('REQ/queue/reschedule')

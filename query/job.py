@@ -143,7 +143,7 @@ class Frequency1DJob(Job):
         counts = df.groupby(self.grouping.name).size()
         counts = [[index, count] for index, count in counts.items()]        
         return counts
-
+        
     def to_json(self):
         return {'id': self.id, 'numRows': self.sample.num_rows}
 
@@ -167,6 +167,16 @@ class Frequency2DJob(Job):
 
         counts = df.groupBy(self.grouping1.name, self.grouping2.name).count().collect()
 
+        return counts
+
+    def run(self):
+        """ returns [['A', 10], ['B', 20]]"""
+
+        df = self.dataset.df.iloc[self.sample.start:self.sample.end]
+
+
+        counts = df.groupby([self.grouping1.name, self.grouping2.name]).size()
+        counts = [[index, count] for index, count in counts.items()]        
         return counts
 
     def to_json(self):
