@@ -58,7 +58,7 @@ class Query:
         where = None
         
         if where_string is not None and len(where_string) > 0:
-            where = Predicate.from_json(where_string)
+            where = Predicate.from_json(where_string, dataset)
 
         if type_string == Frequency1DQuery.name:
             grouping = json['grouping']['name']
@@ -107,7 +107,7 @@ class Query:
         }
 
         if self.where is not None:
-            json.update({'where', self.where.to_json()})
+            json.update({'where': self.where.to_json()})
 
         return json
 
