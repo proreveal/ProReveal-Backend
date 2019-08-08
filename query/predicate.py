@@ -40,6 +40,9 @@ class NumericEqualPredicate(Predicate):
             'expected': self.expected
         }
 
+    def to_lambda(self):
+        return lambda x: x[self.field.name] == self.expected
+
 class StringEqualPredicate(Predicate):
     def __init__(self, field, expected):
         self.field = field
@@ -54,6 +57,9 @@ class StringEqualPredicate(Predicate):
             'field': self.field.to_json(),
             'expected': self.expected
         }
+
+    def to_lambda(self):
+        return lambda x: x[self.field.name] == self.expected
 
 class RangePredicate(Predicate):
     def __init__(self, field, start, end, include_end):
@@ -78,6 +84,12 @@ class RangePredicate(Predicate):
             'includeEnd': self.include_end
         }
 
+    def to_lambda(self):
+        if self.include_end:
+            return lambda x: self.start <= x[self.field.name] and x[self.field.name] <= self.end
+
+        return lambda x: self.start <= x[self.field.name] and x[self.field.name] < self.end
+
 class AndPredicate(Predicate):
     def __init__(self, predicates):
         self.predicates = predicates
@@ -93,3 +105,14 @@ class AndPredicate(Predicate):
             'type': 'and',
             'predicates': [p.to_json() for p in self.predicates]
         }
+
+    def to_lambda(self):
+        fs = [p.to_lambda() for p in self.predicates]
+
+        def all(x):
+            for f in fs:
+                if not f(x):
+                    return False
+            return True
+        
+        return all

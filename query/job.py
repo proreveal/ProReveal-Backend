@@ -140,6 +140,9 @@ class Frequency1DJob(Job):
 
         df = self.dataset.df.iloc[self.sample.start:self.sample.end]
 
+        if self.where is not None:
+            df = df[df.apply(self.where.to_lambda(), axis=1)]
+            
         counts = df.groupby(self.grouping.name).size()
         counts = [[index, count] for index, count in counts.items()]        
         return counts
@@ -174,6 +177,8 @@ class Frequency2DJob(Job):
 
         df = self.dataset.df.iloc[self.sample.start:self.sample.end]
 
+        if self.where is not None:
+            df = df[df.apply(self.where.to_lambda(), axis=1)]
 
         counts = df.groupby([self.grouping1.name, self.grouping2.name]).size()
         counts = [[index, count] for index, count in counts.items()]        
