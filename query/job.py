@@ -1,5 +1,6 @@
 from accum import *
 from enum import Enum
+import pandas as pd
 
 MAX_VALUE = float('inf')
 EMPTY_KEY = -999
@@ -116,76 +117,6 @@ class AggregateJob(Job):
     def to_json(self):
         return {'id': self.id, 'numRows': self.sample.num_rows}
 
-class Frequency1DJob(Job):
-    def __init__(self, index, sample, grouping, where, query, dataset):
-        super().__init__(index)
-
-        self.sample = sample
-        self.grouping = grouping
-        self.where = where
-        self.query = query
-        self.dataset = dataset        
-
-    def run_spark(self, spark):
-        df = self.dataset.get_sample_df(self.sample.index)
-
-        if self.where is not None:
-            df = df.filter(self.where.to_sql())
-
-        counts = df.groupBy(self.grouping.name).count().collect()
-        return counts
-
-    def run(self):
-        """ returns [['A', 10], ['B', 20]]"""
-
-        df = self.dataset.df.iloc[self.sample.start:self.sample.end]
-
-        if self.where is not None:
-            df = df[df.apply(self.where.to_lambda(), axis=1)]
-            
-        counts = df.groupby(self.grouping.name).size()
-        counts = [[index, count] for index, count in counts.items()]        
-        return counts
-        
-    def to_json(self):
-        return {'id': self.id, 'numRows': self.sample.num_rows}
-
-
-class Frequency2DJob(Job):
-    def __init__(self, index, sample, grouping1, grouping2, where, query, dataset):
-        super().__init__(index)
-
-        self.sample = sample
-        self.grouping1 = grouping1
-        self.grouping2 = grouping2
-        self.where = where
-        self.query = query
-        self.dataset = dataset
-
-    def run_spark(self, spark):
-        df = self.dataset.get_sample_df(self.sample.index)
-
-        if self.where is not None:
-            df = df.filter(self.where.to_sql())
-
-        counts = df.groupBy(self.grouping1.name, self.grouping2.name).count().collect()
-
-        return counts
-
-    def run(self):
-        """ returns [['A', 10], ['B', 20]]"""
-
-        df = self.dataset.df.iloc[self.sample.start:self.sample.end]
-
-        if self.where is not None:
-            df = df[df.apply(self.where.to_lambda(), axis=1)]
-
-        counts = df.groupby([self.grouping1.name, self.grouping2.name]).size()
-        counts = [[index, count] for index, count in counts.items()]        
-        return counts
-
-    def to_json(self):
-        return {'id': self.id, 'numRows': self.sample.num_rows}
 
 class Histogram1DJob(Job):
     def __init__(self, index, sample, grouping, bin_spec, where, query, dataset):
@@ -213,12 +144,35 @@ class Histogram1DJob(Job):
         grouping_name = self.grouping.name
 
         df = self.dataset.get_sample_df(self.sample.index)
+        if self.where is not None:
+            df = df.filter(self.where.to_sql())
+
         rdd = df.rdd.map(lambda row: (row[grouping_name], ))
 
         counts = list(rdd.map(mapper).countByKey().items())
 
         return counts
 
+    def run(self):
+        bin_start = self.bin_spec.start
+        bin_step = self.bin_spec.step()
+        num_bins = self.bin_spec.num_bins
+        grouping_name = self.grouping.name
+        
+        df = self.dataset.df.iloc[self.sample.start:self.sample.end]
+
+        if self.where is not None:
+            df = df[df.apply(self.where.to_lambda(), axis=1)]
+                
+        bins = self.bin_spec.range()
+        bins[0]-=1
+
+        counts = pd.cut(df[grouping_name], bins=bins, labels=list(range(num_bins)))
+        counts = counts.value_counts()
+        counts = [[index, count] for index, count in counts.items()]        
+
+        return counts
+        
     def to_json(self):
         return {'id': self.id, 'numRows': self.sample.num_rows}
 
@@ -267,6 +221,77 @@ class Histogram2DJob(Job):
 
         counts = list(rdd.map(mapper).countByKey().items())
 
+        return counts
+
+    def to_json(self):
+        return {'id': self.id, 'numRows': self.sample.num_rows}
+        
+class Frequency1DJob(Job):
+    def __init__(self, index, sample, grouping, where, query, dataset):
+        super().__init__(index)
+
+        self.sample = sample
+        self.grouping = grouping
+        self.where = where
+        self.query = query
+        self.dataset = dataset        
+
+    def run_spark(self, spark):
+        df = self.dataset.get_sample_df(self.sample.index)
+
+        if self.where is not None:
+            df = df.filter(self.where.to_sql())
+
+        counts = df.groupBy(self.grouping.name).count().collect()
+        return counts
+
+    def run(self):
+        """ returns [['A', 10], ['B', 20]]"""
+
+        df = self.dataset.df.iloc[self.sample.start:self.sample.end]
+
+        if self.where is not None:
+            df = df[df.apply(self.where.to_lambda(), axis=1)]
+
+        counts = df.groupby(self.grouping.name).size()
+        counts = [[index, count] for index, count in counts.items()]        
+        return counts
+        
+    def to_json(self):
+        return {'id': self.id, 'numRows': self.sample.num_rows}
+
+
+class Frequency2DJob(Job):
+    def __init__(self, index, sample, grouping1, grouping2, where, query, dataset):
+        super().__init__(index)
+
+        self.sample = sample
+        self.grouping1 = grouping1
+        self.grouping2 = grouping2
+        self.where = where
+        self.query = query
+        self.dataset = dataset
+
+    def run_spark(self, spark):
+        df = self.dataset.get_sample_df(self.sample.index)
+
+        if self.where is not None:
+            df = df.filter(self.where.to_sql())
+
+        counts = df.groupBy(self.grouping1.name, self.grouping2.name).count().collect()
+
+        return counts
+
+    def run(self):
+        """ returns [['A', 10], ['B', 20]]"""
+
+        df = self.dataset.df.iloc[self.sample.start:self.sample.end]
+
+        if self.where is not None:
+            df = df[df.apply(self.where.to_lambda(), axis=1)]
+
+        counts = df.groupby([self.grouping1.name, self.grouping2.name]).size()
+        counts = [[index, count] for index, count in counts.items()]        
         return counts
 
     def to_json(self):

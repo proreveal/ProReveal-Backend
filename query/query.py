@@ -14,7 +14,7 @@ def now():
 def dict_to_list(dic):
     res = []
     for key, value in dic.items():
-        if isinstance(key, str):
+        if isinstance(key, str) or isinstance(key, int):
             key = ((key, ), )
         else:
             key = (key, )
@@ -167,6 +167,104 @@ class AggregateQuery(Query):
 
         return jobs
 
+class BinSpec:
+    def __init__(self, start, end, num_bins):
+        self.start = start
+        self.end = end
+        self.num_bins = num_bins
+
+    def step(self):
+        return (self.end - self.start) / self.num_bins
+
+    def range(self):
+        step = self.step()
+        return [self.start + step * i for i in range(self.num_bins + 1)]
+
+    @staticmethod
+    def from_json(bin_spec_json):
+        start = bin_spec_json['start']
+        end = bin_spec_json['end']
+        num_bins = bin_spec_json['numBins']
+
+        return BinSpec(start, end, num_bins)
+
+class Histogram1DQuery(Query):
+    name = 'Histogram1DQuery'
+    priority = 1
+
+    def __init__(self, grouping, bin_spec, where, dataset, client_socket_id, shuffle=True):
+        super().__init__(where, client_socket_id, shuffle)
+
+        self.grouping = grouping
+        self.bin_spec = bin_spec
+        self.where = where
+        self.dataset = dataset
+        
+    def get_jobs(self):
+        jobs = []
+        samples = self.dataset.samples[:]
+
+        if self.shuffle:
+            random.shuffle(samples)
+
+        for i, sample in enumerate(samples):
+            jobs.append(Histogram1DJob(
+                i, sample, self.grouping, self.bin_spec, self.where, self,
+                self.dataset
+            ))
+
+        return jobs
+
+    def accumulate(self, res):
+        for name, count in res:
+            if name not in self.result:
+                self.result[name] = AggregateValue(0, 0, count, 0, 0, 0)
+            else:
+                partial = AggregateValue(0, 0, count, 0, 0, 0)
+
+                self.result[name] = accum.accumulate(self.result[name], partial)
+
+    def get_result(self):
+        return dict_to_list(self.result)
+
+    def to_json(self):
+        json = super().to_json()
+        json.update({
+            'grouping': self.grouping.to_json(),
+            'type': Histogram1DQuery.name
+        })
+        return json
+
+class Histogram2DQuery(Query):
+    name = 'Histogram2DQuery'
+    priority = 1
+
+    def __init__(self, grouping1, bin_spec1, grouping2, bin_spec2, where, dataset, client_socket_id, shuffle=True):
+        super().__init__(where, client_socket_id, shuffle)
+
+        self.grouping1 = grouping1
+        self.bin_spec1 = bin_spec1
+        self.grouping2 = grouping2
+        self.bin_spec2 = bin_spec2
+        self.where = where
+        self.dataset = dataset
+        
+    def get_jobs(self):
+        jobs = []
+        samples = self.dataset.samples[:]
+
+        if self.shuffle:
+            random.shuffle(samples)
+
+        for i, sample in enumerate(samples):
+            jobs.append(Histogram2DJob(
+                i, sample, self.grouping1, self.bin_spec1, 
+                self.grouping2, self.bin_spec2, self.where, self,
+                self.dataset
+            ))
+
+        return jobs
+        
 class Frequency1DQuery(Query):
     name = 'Frequency1DQuery'
     priority = 1
@@ -259,76 +357,3 @@ class Frequency2DQuery(Query):
         })
         return json
 
-class BinSpec:
-    def __init__(self, start, end, step, num_bins):
-        self.start = start
-        self.end = end
-        self.step = step
-        self.num_bins = num_bins
-
-    @staticmethod
-    def from_json(bin_spec_json):
-        start = bin_spec_json['start']
-        end = bin_spec_json['end']
-        step = bin_spec_json['step']
-        num_bins = bin_spec_json['numBins']
-
-        return BinSpec(start, end, step, num_bins)
-
-class Histogram1DQuery(Query):
-    name = 'Histogram1DQuery'
-    priority = 1
-
-    def __init__(self, grouping, bin_spec, where, dataset, client_socket_id, shuffle=True):
-        super().__init__(where, client_socket_id, shuffle)
-
-        self.grouping = grouping
-        self.bin_spec = bin_spec
-        self.where = where
-        self.dataset = dataset
-        
-    def get_jobs(self):
-        jobs = []
-        samples = self.dataset.samples[:]
-
-        if self.shuffle:
-            random.shuffle(samples)
-
-        for i, sample in enumerate(samples):
-            jobs.append(Histogram1DJob(
-                i, sample, self.grouping, self.bin_spec, self.where, self,
-                self.dataset
-            ))
-
-        return jobs
-
-
-class Histogram2DQuery(Query):
-    name = 'Histogram2DQuery'
-    priority = 1
-
-    def __init__(self, grouping1, bin_spec1, grouping2, bin_spec2, where, dataset, client_socket_id, shuffle=True):
-        super().__init__(where, client_socket_id, shuffle)
-
-        self.grouping1 = grouping1
-        self.bin_spec1 = bin_spec1
-        self.grouping2 = grouping2
-        self.bin_spec2 = bin_spec2
-        self.where = where
-        self.dataset = dataset
-        
-    def get_jobs(self):
-        jobs = []
-        samples = self.dataset.samples[:]
-
-        if self.shuffle:
-            random.shuffle(samples)
-
-        for i, sample in enumerate(samples):
-            jobs.append(Histogram2DJob(
-                i, sample, self.grouping1, self.bin_spec1, 
-                self.grouping2, self.bin_spec2, self.where, self,
-                self.dataset
-            ))
-
-        return jobs
