@@ -160,7 +160,7 @@ def query(sid, data):
     query_json = data['query']
 
     print(f'Incoming query from {sid} {query_json}')
-    query = Query.from_json(query_json, dataset, sid)
+    query = Query.from_json(query_json, dataset)
 
     session.add_query(query)
 
