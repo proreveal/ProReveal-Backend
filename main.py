@@ -75,6 +75,7 @@ def run_queue():
                 query.num_processed_blocks += 1
                 query.num_processed_rows += job.sample.num_rows
                 query.last_updated = now()
+
                 eventlet.sleep(1)
 
                 sio.emit('STATUS/job/end', {'id': query.id},
@@ -83,6 +84,9 @@ def run_queue():
                 sio.emit('result', { 
                     'query': job.query.to_json()
                 }, room=session.code)
+
+                if query.done():
+                    sio.emit('STATUS/queries', session.query_state_to_json(), room=session.code)
 
         eventlet.sleep(1)
 
@@ -203,6 +207,19 @@ def query_delete(sid, query_json):
         session.remove_query(session.get_query(query_id))
 
     sio.emit('STATUS/queries', session.query_state_to_json(), room=session.code)        
+
+@sio.on('REQ/query/reorder')
+def query_reorder(sid, data):
+    session = get_session_by_sid(sid)
+    if session is None:
+        return
+
+    order = data['order']
+    print(order)
+
+    session.reorder(order)
+    session.reschedule()
+    sio.emit('STATUS/queries', session.query_state_to_json(), room=session.code)
 
 @sio.on('REQ/queue/reschedule')
 def queue_reschedule(sid, data):

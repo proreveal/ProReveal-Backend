@@ -71,3 +71,9 @@ class Session:
             'order': q.order,
             'state': q.state.value
          } for q in self.queries}
+
+    def reorder(self, order):
+        for q in self.queries:
+            q.order = order[q.id]
+
+        self.queries.sort(key=lambda q: q.order)
