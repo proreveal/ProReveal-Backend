@@ -160,9 +160,8 @@ def query(sid, data):
 
     session.add_query(query)
 
-    sio.emit('RES/query', {
-        'query': query.to_json()
-    }, to=sid)
+    sio.emit('RES/query', {'query': query.to_json() }, room=session.code)
+    sio.emit('STATUS/queries', session.query_state_to_json(), room=session.code)
 
 @sio.on('REQ/query/pause')
 def query_pause(sid, data):
@@ -171,11 +170,12 @@ def query_pause(sid, data):
         return
 
     query_json = data['query']
-    #queue_json = data['queue']
     query_id = query_json['id']
 
     if session.get_query(query_id) is not None:
         session.pause_query(session.get_query(query_id))
+
+    sio.emit('STATUS/queries', session.query_state_to_json(), room=session.code)
     
 
 @sio.on('REQ/query/resume')
@@ -185,11 +185,12 @@ def query_resume(sid, data):
         return
 
     query_json = data['query']
-    #queue_json = data['queue']
     query_id = query_json['id']
     
     if session.get_query(query_id) is not None:
         session.resume_query(session.get_query(query_id))
+
+    sio.emit('STATUS/queries', session.query_state_to_json(), room=session.code)        
 
 @sio.on('REQ/query/delete')
 def query_delete(sid, query_json):
@@ -201,14 +202,20 @@ def query_delete(sid, query_json):
     if session.get_query(query_id) is not None:
         session.remove_query(session.get_query(query_id))
 
+    sio.emit('STATUS/queries', session.query_state_to_json(), room=session.code)        
 
 @sio.on('REQ/queue/reschedule')
-def queue_reschedule(sid, queue_json):
+def queue_reschedule(sid, data):
     session = get_session_by_sid(sid)
     if session is None:
         return
 
-    session.job_queue.reschedule(queue_json['queries'], queue_json['mode'])
+    if 'alternate' in data:
+        alternate = data['alternate']
+        session.alternate = alternate
+
+    session.reschedule()
+    sio.emit('STATUS/queries', session.query_state_to_json(), room=session.code)
 
 @sio.on('kill')
 def kill(sid):

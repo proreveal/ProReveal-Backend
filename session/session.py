@@ -11,17 +11,17 @@ class Session:
         self.code = Session.generate_code()
         self.sids = [] 
 
-        # most recent to the end
+        # most recent to the front
         self.queries = []
 
         self.job_queue = JobQueue()
         self.alternate = False
-        self.queue_mode = 'roundrobin'
 
     def to_json(self):
         return {
             'code': self.code,
             'engineType': 'remote',
+            'alternate': self.alternate,
             'queries': [q.to_json() for q in self.queries]
         }
     
@@ -40,21 +40,34 @@ class Session:
         return None
 
     def add_query(self, query):
-        self.queries.append(query)
+        self.queries.insert(0, query)
+
+        for i, q in enumerate(self.queries):
+            q.order = i
+
         self.job_queue.append(query.get_jobs())
-        self.job_queue.reschedule(self.queries, self.queue_mode)
+        self.job_queue.reschedule(self.alternate)
 
     def pause_query(self, query):
         query.pause()
         self.job_queue.pause_by_query_id(query.id)
-        self.job_queue.reschedule(self.queries, self.queue_mode)
+        self.job_queue.reschedule(self.alternate)
 
     def resume_query(self, query):
         query.resume()
         self.job_queue.resume_by_query_id(query.id)
-        self.job_queue.reschedule(self.queries, self.queue_mode)
+        self.job_queue.reschedule(self.alternate)
 
     def remove_query(self, query):
         self.queries = [q for q in self.queries if q != query]        
         self.job_queue.remove_by_query_id(query.id)
-        self.job_queue.reschedule(self.queries, self.queue_mode)
+        self.job_queue.reschedule(self.alternate)
+
+    def reschedule(self):
+        self.job_queue.reschedule(self.alternate)
+
+    def query_state_to_json(self):
+        return {q.id: {
+            'order': q.order,
+            'state': q.state.value
+         } for q in self.queries}

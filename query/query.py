@@ -43,6 +43,7 @@ class Query:
         
         self.result = {} # dict with keys
         self.state = QueryState.Running
+        self.order = 0
 
         Query.id += 1
 
@@ -105,13 +106,17 @@ class Query:
             'numProcessedRows': self.num_processed_rows,
             'numProcessedBlocks': self.num_processed_blocks,
             'lastUpdated': self.last_updated,
-            'result': self.get_result()
+            'result': self.get_result(),
+            'order': self.order
         }
 
         if self.where is not None:
             json.update({'where': self.where.to_json()})
 
         return json
+
+    def done(self):
+        return self.num_processed_blocks == len(self.dataset.samples)
 
 class SelectQuery(Query):
     name = 'SelectQuery'
