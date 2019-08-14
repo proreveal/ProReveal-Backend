@@ -1,6 +1,7 @@
 from accum import *
 from enum import Enum
 import pandas as pd
+import numpy as np
 
 MAX_VALUE = float('inf')
 EMPTY_KEY = -999
@@ -113,6 +114,28 @@ class AggregateJob(Job):
             result[key] = (0, 0, 0, 0, 0, null_counts[key])
         
         return [(key, ) + res for key, res in result.items()]
+
+
+    def run(self):
+        """ returns [['A', 10], ['B', 20]]"""
+
+        df = self.dataset.df.iloc[self.sample.start:self.sample.end]
+
+        if self.where is not None:
+            df = df[df.apply(self.where.to_lambda(), axis=1)]
+
+        counts = df.groupby(self.grouping.name)[self.target.name].agg([
+            ('sum', 'sum'),
+            ('ssum', lambda x: np.sum(np.array(x) ** 2)),
+            ('count', lambda x: len([y for y in x if pd.notnull(y)])),
+            ('min', 'min'),
+            ('max', 'max'),
+            ('null_count', lambda x: len([y for y in x if not pd.notnull(y)])),
+        ])
+        
+        counts = [[index, row['sum'], row['ssum'], row['count'], row['min'], row['max'], row['null_count']] for index, row in counts.iterrows()]
+            
+        return counts
 
     def to_json(self):
         return {'id': self.id, 'numRows': self.sample.num_rows}

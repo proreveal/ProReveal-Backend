@@ -75,10 +75,11 @@ class Query:
             return Frequency2DQuery(grouping1, grouping2, where, dataset, client_socket_id)
         
         elif type_string == AggregateQuery.name:
+            aggregate = json['aggregate']
             target = dataset.get_field_by_name(json['target']['name'])
             grouping = dataset.get_field_by_name(json['grouping']['name'])
 
-            return AggregateQuery(target, grouping, where, dataset, client_socket_id)
+            return AggregateQuery(aggregate, target, grouping, where, dataset, client_socket_id)
         
         elif type_string == Histogram1DQuery.name:
             grouping = dataset.get_field_by_name(json['grouping']['name'])
@@ -149,9 +150,10 @@ class AggregateQuery(Query):
     name = 'AggregateQuery'
     priority = 1
 
-    def __init__(self, target, grouping, where, dataset, client_socket_id, shuffle=True):        
+    def __init__(self, aggregate, target, grouping, where, dataset, client_socket_id, shuffle=True):        
         super().__init__(where, client_socket_id, shuffle)
 
+        self.aggregate = aggregate
         self.target = target
         self.grouping = grouping
         self.where = where
@@ -171,6 +173,28 @@ class AggregateQuery(Query):
             ))
 
         return jobs
+
+    def accumulate(self, res):
+        for name, sum, ssum, count, min, max, null_count in res:
+            if name not in self.result:
+                self.result[name] = AggregateValue(sum, ssum, count, min, max, null_count)
+            else:
+                partial = AggregateValue(sum, ssum, count, min, max, null_count)
+
+                self.result[name] = accum.accumulate(self.result[name], partial)
+
+    def get_result(self):
+        return dict_to_list(self.result)
+
+    def to_json(self):
+        json = super().to_json()
+        json.update({
+            'grouping': self.grouping.to_json(),
+            'target': self.target.to_json(),
+            'type': AggregateQuery.name,
+            'aggregate': self.aggregate
+        })
+        return json
 
 class BinSpec:
     def __init__(self, start, end, num_bins):
