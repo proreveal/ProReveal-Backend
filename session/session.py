@@ -88,7 +88,7 @@ class Session:
          } for q in self.queries}
 
     def safeguards_to_json(self):
-        return {sg.id: sg for sg in self.safeguards}
+        return {sg['id']: sg for sg in self.safeguards}
 
     def reorder(self, order):
         for q in self.queries:
