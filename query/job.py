@@ -133,7 +133,8 @@ class AggregateJob(Job):
             ('null_count', lambda x: len([y for y in x if not pd.notnull(y)])),
         ])
         
-        counts = [[index, row['sum'], row['ssum'], row['count'], row['min'], row['max'], row['null_count']] for index, row in counts.iterrows()]
+        counts = [[index, float(row['sum']), float(row['ssum']), float(row['count']),
+         float(row['min']), float(row['max']), float(row['null_count'])] for index, row in counts.iterrows()]
             
         return counts
 

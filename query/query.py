@@ -119,7 +119,7 @@ class Query:
         return self.num_processed_blocks == len(self.dataset.samples)
 
 class SelectQuery(Query):
-    name = 'SelectQuery'
+    name = 'Select'
     priority = 0
 
     def __init__(self, where, dataset, shuffle=False):
@@ -146,7 +146,7 @@ class SelectQuery(Query):
         return jobs
 
 class AggregateQuery(Query):
-    name = 'AggregateQuery'
+    name = 'Aggregate'
     priority = 1
 
     def __init__(self, aggregate, target, grouping, where, dataset, shuffle=True):        
@@ -217,7 +217,7 @@ class BinSpec:
         return BinSpec(start, end, num_bins)
 
 class Histogram1DQuery(Query):
-    name = 'Histogram1DQuery'
+    name = 'Histogram1D'
     priority = 1
 
     def __init__(self, grouping, bin_spec, where, dataset, shuffle=True):
@@ -264,7 +264,7 @@ class Histogram1DQuery(Query):
         return json
 
 class Histogram2DQuery(Query):
-    name = 'Histogram2DQuery'
+    name = 'Histogram2D'
     priority = 1
 
     def __init__(self, grouping1, bin_spec1, grouping2, bin_spec2, where, dataset, shuffle=True):
@@ -315,7 +315,7 @@ class Histogram2DQuery(Query):
         return json
 
 class Frequency1DQuery(Query):
-    name = 'Frequency1DQuery'
+    name = 'Frequency1D'
     priority = 1
 
     def __init__(self, grouping, where, dataset, shuffle=True):        
@@ -360,7 +360,7 @@ class Frequency1DQuery(Query):
         return json
 
 class Frequency2DQuery(Query):
-    name = 'Frequency2DQuery'
+    name = 'Frequency2D'
     priority = 1
 
     def __init__(self, grouping1, grouping2, where, dataset, shuffle=True):

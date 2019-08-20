@@ -167,6 +167,20 @@ def query(sid, data):
     sio.emit('RES/query', {'query': query.to_json() }, room=session.code)
     sio.emit('STATUS/queries', session.query_state_to_json(), room=session.code)
 
+@sio.on('REQ/safeguard')
+def safeguard(sid, data):
+    session = get_session_by_sid(sid)
+    if session is None:
+        return
+
+    sg_json = data['safeguard']
+
+    print(f'Incoming safeguard from {sid} {sg_json}')
+    
+    session.add_safeguard(sg_json)
+
+    sio.emit('RES/safeguard', {'safeguard': sg_json}, room=session.code)
+
 @sio.on('REQ/query/pause')
 def query_pause(sid, data):
     session = get_session_by_sid(sid)
@@ -196,8 +210,8 @@ def query_resume(sid, data):
 
     sio.emit('STATUS/queries', session.query_state_to_json(), room=session.code)        
 
-@sio.on('REQ/query/delete')
-def query_delete(sid, query_json):
+@sio.on('REQ/query/remove')
+def query_remove(sid, query_json):
     session = get_session_by_sid(sid)
     if session is None:
         return
@@ -233,6 +247,18 @@ def queue_reschedule(sid, data):
 
     session.reschedule()
     sio.emit('STATUS/queries', session.query_state_to_json(), room=session.code)
+
+@sio.on('REQ/safeguard/remove')
+def safeguard(sid, data):
+    session = get_session_by_sid(sid)
+    if session is None:
+        return
+
+    sg_json = data['safeguard']
+    
+    session.remove_safeguard(sg_json)
+
+    sio.emit('STATUS/safeguards', session.safeguards_to_json(), room=session.code)
 
 @sio.on('kill')
 def kill(sid):

@@ -21,6 +21,7 @@
         "vlType": "quantitative",
         "min": 0,
         "max": 300,
+        "numBins": 24,
         "dataType": "float"
     },
     {
@@ -47,6 +48,7 @@
         "name": "Revenue",
         "vlType": "quantitative",
         "min": 0,
+        "max": 1000000000,
         "unit": "USD",
         "dataType": "float"
     },
@@ -55,6 +57,7 @@
         "vlType": "quantitative",
         "min": 0,
         "max": 600,
+        "numBins": 24,
         "dataType": "float"
     },
     {

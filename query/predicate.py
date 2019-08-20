@@ -8,16 +8,16 @@ class Predicate:
 
         pred_type = pred_json['type']
     
-        if pred_type == 'and':
+        if pred_type == 'And':
             return AndPredicate([Predicate.from_json(pred, dataset) for pred in pred_json['predicates']])
 
         field_data_type = pred_json['field']['dataType']
         field_name = pred_json['field']['name']
         field = dataset.get_field_by_name(field_name)
         
-        if pred_type == 'range':
+        if pred_type == 'Range':
             return RangePredicate(field, pred_json['start'], pred_json['end'], pred_json['includeEnd'])
-        elif pred_type == 'equal':
+        elif pred_type == 'Equal':
             if field_data_type == DataType.String.value:
                 return StringEqualPredicate(field, pred_json['expected'])            
 
@@ -35,7 +35,7 @@ class NumericEqualPredicate(Predicate):
 
     def to_json(self):
         return {
-            'type': 'equal',
+            'type': 'Equal',
             'field': self.field.to_json(),
             'expected': self.expected
         }
@@ -53,7 +53,7 @@ class StringEqualPredicate(Predicate):
  
     def to_json(self):
         return {
-            'type': 'equal',
+            'type': 'Equal',
             'field': self.field.to_json(),
             'expected': self.expected
         }
@@ -77,7 +77,7 @@ class RangePredicate(Predicate):
 
     def to_json(self):
         return {
-            'type': 'range',
+            'type': 'Range',
             'field': self.field.to_json(),
             'start': self.start, 
             'end': self.end,
@@ -102,7 +102,7 @@ class AndPredicate(Predicate):
             return None
         
         return {
-            'type': 'and',
+            'type': 'And',
             'predicates': [p.to_json() for p in self.predicates]
         }
 
