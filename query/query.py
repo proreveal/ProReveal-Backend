@@ -1,5 +1,6 @@
 import random
 import time
+import math
 
 from .job import *
 from .predicate import Predicate
@@ -7,13 +8,20 @@ from accum import AggregateValue, AllAccumulator
 from enum import Enum
 
 accum = AllAccumulator()
+NULL_ID = 9007199254740991
 
 def now():
     return int(time.time() * 1000)
 
 def dict_to_list(dic):
     res = []
+
     for key, value in dic.items():
+        if isinstance(key, float) and math.isnan(key):
+            key = NULL_ID
+        elif isinstance(key, list) or isinstance(key, tuple):
+            key = [NULL_ID if math.isnan(x) else x for x in key]
+
         if isinstance(key, str) or isinstance(key, int):
             key = ((key, ), )
         else:

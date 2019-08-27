@@ -109,6 +109,7 @@ def disconnect(sid):
 @sio.on('REQ/restore')
 def restore(sid, data):
     code = data['code'].upper()
+    print('Session Restored', code)
     
     session = list(filter(lambda x: x.code == code, sessions))
     if len(session) == 0:
@@ -117,6 +118,7 @@ def restore(sid, data):
         }, to=sid)
     else:
         session = session[0]
+        print('restore session', sid, session.to_json())
         sio.emit('RES/restore', {
             'success': True,
             'session': session.to_json(),

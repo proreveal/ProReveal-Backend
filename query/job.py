@@ -275,7 +275,6 @@ class Histogram2DJob(Job):
             y_group=pd.cut(df[grouping2_name], bins=bins2, labels=list(range(num_bins2)))
         )
         
-
         df = df.assign(xy_key=pd.Categorical(df.filter(items=['x_group', 'y_group']).apply(tuple, 1)))
 
         counts = df.groupby('xy_key').size()
