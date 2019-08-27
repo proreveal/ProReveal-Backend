@@ -20,7 +20,7 @@ def dict_to_list(dic):
         if isinstance(key, float) and math.isnan(key):
             key = NULL_ID
         elif isinstance(key, list) or isinstance(key, tuple):
-            key = [NULL_ID if math.isnan(x) else x for x in key]
+            key = [NULL_ID if isinstance(x, float) and math.isnan(x) else x for x in key]
 
         if isinstance(key, str) or isinstance(key, int):
             key = ((key, ), )
