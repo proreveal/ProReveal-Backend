@@ -76,7 +76,7 @@ def run_queue():
                 query.num_processed_rows += job.sample.num_rows
                 query.last_updated = now()
 
-                eventlet.sleep(1)
+                # eventlet.sleep(1)
 
                 sio.emit('STATUS/job/end', {'id': query.id},
                     room=session.code)
@@ -88,7 +88,7 @@ def run_queue():
                 if query.done():
                     sio.emit('STATUS/queries', session.query_state_to_json(), room=session.code)
 
-        eventlet.sleep(1)
+        eventlet.sleep(0.001)
 
 forever = eventlet.spawn(run_queue)
 

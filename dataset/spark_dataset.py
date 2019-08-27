@@ -28,7 +28,7 @@ class SparkDataset:
         if not self.is_hdfs:
             metadata = json.load(open(os.path.join(self.path, 'metadata.json')))
         else:
-            metadata_rdd = self.spark.read.text(self.path + '/metadata.json')
+            metadata_rdd = self.backend.spark.read.text(self.path + '/metadata.json')
             metadata_json = ''.join([row.value.strip() for row in metadata_rdd.collect()])
             metadata = json.loads(metadata_json)
 
@@ -65,7 +65,7 @@ class SparkDataset:
         return [field.to_json() for field in self.fields]
 
     def get_sample_df(self, sid):
-        df = self.spark.read.format('csv').option('header', 'false')\
+        df = self.backend.spark.read.format('csv').option('header', 'false')\
             .schema(self.get_spark_schema())\
             .load(self.path + '/' + self.metadata['output_files'][sid]['path'])
 
@@ -74,7 +74,7 @@ class SparkDataset:
     def get_df(self):
         paths = [sample.path for sample in self.samples]
 
-        df = self.spark.read.format('csv').option('header', 'false')\
+        df = self.backend.spark.read.format('csv').option('header', 'false')\
             .schema(self.get_spark_schema())\
             .load([self.path + '/' + path for path in paths])
 

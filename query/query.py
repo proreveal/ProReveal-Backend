@@ -24,8 +24,12 @@ def dict_to_list(dic):
 
         if isinstance(key, str) or isinstance(key, int):
             key = ((key, ), )
+        elif key is None:
+            key = ((NULL_ID, ), )
         else:
             key = (key, )
+
+        
         
         res.append(key + value.to_tuple())
     

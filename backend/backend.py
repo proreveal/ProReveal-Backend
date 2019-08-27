@@ -18,6 +18,7 @@ class SparkBackend(BackendBase):
         version = config['server']['version']
         spark = SparkSession.builder.appName(f'ProReveal Spark Engine {version}')\
             .getOrCreate()
+
         self.spark = spark
         
     def load(self, path):
@@ -37,7 +38,7 @@ class SparkBackend(BackendBase):
         }
 
     def run(self, job):
-        return job.run(self.spark)
+        return job.run_spark(self.spark)
 
     def stop(self):
         self.spark.stop()

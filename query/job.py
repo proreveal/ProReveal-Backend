@@ -155,7 +155,7 @@ class Histogram1DJob(Job):
     
     def run_spark(self, spark):        
         bin_start = self.bin_spec.start
-        bin_step = self.bin_spec.step
+        bin_step = self.bin_spec.step()
         num_bins = self.bin_spec.num_bins
 
         def mapper(value):
@@ -215,11 +215,11 @@ class Histogram2DJob(Job):
     
     def run_spark(self, spark):
         bin_start1 = self.bin_spec1.start
-        bin_step1 = self.bin_spec1.step
+        bin_step1 = self.bin_spec1.step()
         num_bins1 = self.bin_spec1.num_bins
 
         bin_start2 = self.bin_spec2.start
-        bin_step2 = self.bin_spec2.step
+        bin_step2 = self.bin_spec2.step()
         num_bins2 = self.bin_spec2.num_bins
 
         def mapper(value):
@@ -243,6 +243,7 @@ class Histogram2DJob(Job):
         df = self.dataset.get_sample_df(self.sample.index)
         rdd = df.rdd.map(lambda row: ((row[grouping_name1], row[grouping_name2]),))
 
+        # print('count starts')
         counts = list(rdd.map(mapper).countByKey().items())
 
         return counts

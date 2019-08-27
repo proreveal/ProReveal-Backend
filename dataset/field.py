@@ -46,7 +46,8 @@ class FieldTrait:
         'vlType': self.vl_type.value}
 
     def get_pyspark_sql_type(self):
-        # from pyspark.sql.types import DoubleType, LongType, StringType
+        from pyspark.sql.types import DoubleType, LongType, StringType
+        
         if self.data_type is DataType.Integer:
             return LongType
         elif self.data_type is DataType.Float:
