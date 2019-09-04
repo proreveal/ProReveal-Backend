@@ -119,7 +119,8 @@ class Query:
             'numProcessedBlocks': self.num_processed_blocks,
             'lastUpdated': self.last_updated,
             'result': self.get_result(),
-            'order': self.order
+            'order': self.order,
+            'state': self.state.value
         }
 
         if self.where is not None:
