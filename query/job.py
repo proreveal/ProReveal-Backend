@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 MAX_VALUE = float('inf')
+EMPTY_MAGIC_STRING = 'NANANA'
 EMPTY_KEY = -999
 
 class JobState(Enum):
@@ -308,12 +309,16 @@ class Frequency1DJob(Job):
         """ returns [['A', 10], ['B', 20]]"""
 
         df = self.dataset.df.iloc[self.sample.start:self.sample.end]
+        grouping = self.grouping.name
 
         if self.where is not None:
             df = df[df.apply(self.where.to_lambda(), axis=1)]
+        
+        df.loc[:, grouping] = df[grouping].fillna(EMPTY_MAGIC_STRING)
 
         counts = df.groupby(self.grouping.name).size()
-        counts = [[index, count] for index, count in counts.items()]        
+        
+        counts = [[index if index != EMPTY_MAGIC_STRING else np.nan, count] for index, count in counts.items()]
         return counts
         
     def to_json(self):

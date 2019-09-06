@@ -18,18 +18,16 @@ def dict_to_list(dic):
 
     for key, value in dic.items():
         if isinstance(key, float) and math.isnan(key):
-            key = NULL_ID
+            key = None
         elif isinstance(key, list) or isinstance(key, tuple):
-            key = [NULL_ID if isinstance(x, float) and math.isnan(x) else x for x in key]
+            key = [None if isinstance(x, float) and math.isnan(x) else x for x in key]
 
         if isinstance(key, str) or isinstance(key, int):
             key = ((key, ), )
         elif key is None:
-            key = ((NULL_ID, ), )
+            key = ((None, ), )
         else:
             key = (key, )
-
-        
         
         res.append(key + value.to_tuple())
     
