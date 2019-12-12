@@ -65,6 +65,7 @@ class FieldTrait:
         
         if vl_type == VlType.Quantitative.value:
             min = json.get('min', None)
+            print(json, min)
             max = json.get('max', None)
             num_bins = json.get('numBins', None)
 
@@ -78,6 +79,7 @@ class FieldTrait:
 
 class QuantitativeField(FieldTrait):
     vl_type = VlType.Quantitative
+    DEFAULT_NUM_BINS = 40
 
     def __init__(self, name, data_type, min, max, num_bins):
         super().__init__(name, data_type)
@@ -91,6 +93,13 @@ class QuantitativeField(FieldTrait):
         'vlType': self.vl_type.value, 'min': self.min, 'max': self.max, 
         'numBins': self.num_bins}
 
+    def nice(self, number):
+        if self.data_type == DataType.Float:
+            return float(number)        
+        elif self.data_type == DataType.Integer:
+            return int(number)
+
+        return number
 class CategoricalField(FieldTrait):
     pass
 

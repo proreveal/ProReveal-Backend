@@ -1,0 +1,95 @@
+{
+    "source": {
+        "name": "Movies",
+        "path": "movies.json"
+    },
+    "fields": [
+        {
+            "name": "Budget",
+            "vlType": "quantitative",
+            "min": 0,
+            "unit": "USD",
+            "dataType": "float"
+        },
+        {
+            "name": "Genre",
+            "vlType": "nominal",        
+            "dataType": "string"
+        },
+        {
+            "name": "Language",
+            "vlType": "nominal",        
+            "dataType": "string"
+        },
+        {
+            "name": "Popularity",
+            "vlType": "quantitative",
+            "min": 0,
+            "max": 300,
+            "numBins": 24,
+            "dataType": "float"
+        },
+        {
+            "name": "Production Company",
+            "vlType": "key",
+            "dataType": "string"
+        },
+        {
+            "name": "Country",
+            "vlType": "nominal",
+            "dataType": "string"
+        },
+        {
+            "name": "Year",
+            "vlType": "nominal",
+            "dataType": "integer"
+        },
+        {
+            "name": "Month",
+            "vlType": "ordinal",
+            "dataType": "integer"
+        },
+        {
+            "name": "Revenue",
+            "vlType": "quantitative",
+            "min": 0,
+            "max": 1000000000,
+            "unit": "USD",
+            "dataType": "float"
+        },
+        {
+            "name": "Runtime",
+            "vlType": "quantitative",
+            "min": 0,
+            "max": 600,
+            "numBins": 24,
+            "dataType": "float"
+        },
+        {
+            "name": "Status",
+            "vlType": "nominal",        
+            "dataType": "string"
+        },
+        {
+            "name": "Title",
+            "vlType": "key",        
+            "dataType": "string"
+        },
+        {
+            "name": "Score",
+            "vlType": "quantitative",
+            "min": 0,
+            "max": 10,
+            "numBins": 20,
+            "dataType": "float"
+        },
+        {
+            "name": "Votes",
+            "vlType": "quantitative",
+            "min": 0,
+            "max": 12000,
+            "numBins": 24,
+            "dataType": "float"
+        }
+    ]
+}

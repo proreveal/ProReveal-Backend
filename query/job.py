@@ -120,7 +120,7 @@ class AggregateJob(Job):
     def run(self):
         """ returns [['A', 10], ['B', 20]]"""
 
-        df = self.dataset.df.iloc[self.sample.start:self.sample.end]
+        df = self.sample.df
 
         if self.where is not None:
             df = df[df.apply(self.where.to_lambda(), axis=1)]
@@ -184,7 +184,7 @@ class Histogram1DJob(Job):
         num_bins = self.bin_spec.num_bins
         grouping_name = self.grouping.name
         
-        df = self.dataset.df.iloc[self.sample.start:self.sample.end]
+        df = self.sample.df
 
         if self.where is not None:
             df = df[df.apply(self.where.to_lambda(), axis=1)]
@@ -261,7 +261,7 @@ class Histogram2DJob(Job):
         grouping1_name = self.grouping1.name
         grouping2_name = self.grouping2.name
         
-        df = self.dataset.df.iloc[self.sample.start:self.sample.end]
+        df = self.sample.df
 
         if self.where is not None:
             df = df[df.apply(self.where.to_lambda(), axis=1)]
@@ -308,7 +308,7 @@ class Frequency1DJob(Job):
     def run(self):
         """ returns [['A', 10], ['B', 20]]"""
 
-        df = self.dataset.df.iloc[self.sample.start:self.sample.end]
+        df = self.sample.df
         grouping = self.grouping.name
 
         if self.where is not None:
@@ -349,7 +349,7 @@ class Frequency2DJob(Job):
     def run(self):
         """ returns [['A', 10], ['B', 20]]"""
 
-        df = self.dataset.df.iloc[self.sample.start:self.sample.end]
+        df = self.sample.df
 
         if self.where is not None:
             df = df[df.apply(self.where.to_lambda(), axis=1)]

@@ -123,7 +123,7 @@ def restore(sid, data):
             'success': True,
             'session': session.to_json(),
             'metadata': {
-                'name': os.path.basename(os.path.normpath(dataset.path)),
+                'name': dataset.name,
                 'schema': dataset.get_json_schema(),
                 'numRows': dataset.num_rows,
                 'numBatches': len(dataset.samples)        
