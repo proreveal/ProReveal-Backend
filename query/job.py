@@ -42,7 +42,7 @@ class SelectJob(Job):
         self.limit = limit
 
     def run(self, spark):
-        df = self.dataset.get_sample_df(self.sample.index)
+        df = self.sample.df
 
         #idx_from = self.idx_from
         #idx_to = self.idx_to
@@ -69,7 +69,7 @@ class AggregateJob(Job):
         self.dataset = dataset
 
     def run_spark(self, spark):
-        df = self.dataset.get_sample_df(self.sample.index)
+        df = self.sample.df
 
         if self.where is not None:
             df = df.filter(self.where.to_sql())
@@ -168,7 +168,7 @@ class Histogram1DJob(Job):
         
         grouping_name = self.grouping.name
 
-        df = self.dataset.get_sample_df(self.sample.index)
+        df = self.sample.df
         if self.where is not None:
             df = df.filter(self.where.to_sql())
 
@@ -241,7 +241,7 @@ class Histogram2DJob(Job):
         grouping_name1 = self.grouping1.name
         grouping_name2 = self.grouping2.name
 
-        df = self.dataset.get_sample_df(self.sample.index)
+        df = self.sample.df
         rdd = df.rdd.map(lambda row: ((row[grouping_name1], row[grouping_name2]),))
 
         # print('count starts')
@@ -297,7 +297,7 @@ class Frequency1DJob(Job):
         self.dataset = dataset        
 
     def run_spark(self, spark):
-        df = self.dataset.get_sample_df(self.sample.index)
+        df = self.sample.df
 
         if self.where is not None:
             df = df.filter(self.where.to_sql())
@@ -337,7 +337,7 @@ class Frequency2DJob(Job):
         self.dataset = dataset
 
     def run_spark(self, spark):
-        df = self.dataset.get_sample_df(self.sample.index)
+        df = self.sample.df
 
         if self.where is not None:
             df = df.filter(self.where.to_sql())

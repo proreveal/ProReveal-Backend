@@ -2,12 +2,13 @@ import os
 import json
 import re
 
-from .field import FieldTrait
+from .field import FieldTrait, QuantitativeField
 
 class SparkSample:
-    def __init__(self, index, path, num_rows):
+    def __init__(self, index, path, df, num_rows):
         self.index = index
         self.path = path
+        self.df = df
         self.num_rows = num_rows
 
 class SparkDataset:    
@@ -15,33 +16,53 @@ class SparkDataset:
         self.backend = backend
         self.path = path
         self.fields = []        
-        self.is_hdfs = path.startswith('hdfs')
 
-        if self.is_hdfs:
-            p = '(?:hdfs.*://)?(?P<host>[^:/ ]+).?(?P<port>[0-9]*).*'
-            m = re.search(p, self.path)
-
-            self.hdfs_host = m.group('host')
-            self.hdfs_port = int(m.group('port'))
-    
-    def load(self):
-        if not self.is_hdfs:
-            metadata = json.load(open(os.path.join(self.path, 'metadata.json')))
-        else:
-            metadata_rdd = self.backend.spark.read.text(self.path + '/metadata.json')
-            metadata_json = ''.join([row.value.strip() for row in metadata_rdd.collect()])
-            metadata = json.loads(metadata_json)
+    def load(self):        
+        metadata_rdd = self.backend.spark.read.text(self.path + '/metadata.json')
+        metadata_json = ''.join([row.value.strip() for row in metadata_rdd.collect()])
+        metadata = json.loads(metadata_json)
 
         self.metadata = metadata
 
+        self.name = self.metadata['source']['name'] or os.path.basename(os.path.normpath(self.path))
+
         self.fields = []
-        for field in self.metadata['header']:
-            self.fields.append(FieldTrait.from_json(field))
+        for fieldTrait in self.metadata['fields']:
+            field = FieldTrait.from_json(fieldTrait)
+            self.fields.append(field)
+
+        self.samples = []
+
+        for i, batch in enumerate(self.metadata['source']['batches']):
+            path = batch['path']
+
+            abs_path = os.path.join(
+                self.path, 
+                path
+            )
+
+            df = self.get_df(abs_path)
+
+            if 'numRows' in batch:
+                sample = SparkSample(i, path, df, batch['numRows'])
+            else:
+                sample = SparkSample(i, path, df, df.count())
+
+            self.samples.append(sample)            
+
         
-        self.samples = [SparkSample(i, sample['path'], sample['num_rows']) for i, sample in enumerate(self.metadata['output_files'])]
+        for fieldTrait in self.metadata['fields']:
+            if isinstance(field, QuantitativeField):
+                if field.min is None:
+                    field.min = field.nice(self.samples[0].df[field.name].min())
 
+                if field.max is None:
+                    field.max = field.nice(self.samples[0].df[field.name].max())
 
-        num_rows = 0
+                if field.num_bins is None:
+                    field.num_bins = QuantitativeField.DEFAULT_NUM_BINS
+
+        num_rows = 0        
         for sample in self.samples:
             num_rows += sample.num_rows
 
@@ -64,18 +85,10 @@ class SparkDataset:
     def get_json_schema(self):
         return [field.to_json() for field in self.fields]
 
-    def get_sample_df(self, sid):
-        df = self.backend.spark.read.format('csv').option('header', 'false')\
+    def get_df(self, path):
+        df = self.backend.spark.read.option('header', 'false')\
             .schema(self.get_spark_schema())\
-            .load(self.path + '/' + self.metadata['output_files'][sid]['path'])
+            .load(path)
 
         return df
-    
-    def get_df(self):
-        paths = [sample.path for sample in self.samples]
-
-        df = self.backend.spark.read.format('csv').option('header', 'false')\
-            .schema(self.get_spark_schema())\
-            .load([self.path + '/' + path for path in paths])
-
-        return df
+        
