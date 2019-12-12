@@ -25,7 +25,7 @@ class LocalDataset:
 
         self.name = self.metadata['source']['name'] or os.path.basename(os.path.normpath(self.path))
 
-        if self.metadata['source']['path']:
+        if 'path' in self.metadata['source']:
             # if a dataset is a single file, read and split the dataset by sample_rows
 
             abs_source_path = os.path.abspath(os.path.join(
@@ -42,6 +42,31 @@ class LocalDataset:
             num_rows = len(df.index)
 
             self.samples = [LocalSample(i, df.iloc[s:min(s + sample_rows, num_rows)]) for i, s in enumerate(range(0, num_rows, sample_rows))]
+        elif 'batches' in self.metadata['source']:
+            # if a dataset consists of multiple files, use each file as a batch
+
+            self.samples = []
+
+            num_rows = 0
+            
+            for i, batch in enumerate(self.metadata['source']['batches']):
+                path = batch['path']
+
+                abs_path = os.path.abspath(os.path.join(
+                    self.path, 
+                    path                
+                ))
+
+                with open(abs_path, encoding='utf8') as fin:
+                    data = json.load(fin)
+        
+                df = pd.DataFrame.from_records(data)
+
+                num_rows += batch.get('numRows', None) or len(df.index)
+
+                self.samples.append(LocalSample(i, df))            
+        else:
+            raise Exception('Either "path" or "batches" must be given in the "source" property of metadata.json')
 
         self.fields = []
         for fieldTrait in self.metadata['fields']:
