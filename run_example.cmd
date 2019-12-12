@@ -1,1 +1,0 @@
-spark-submit --conf spark.pyspark.driver.python=C:\\Users\\jmjo\\Anaconda3\\envs\\cs231n\\python --conf  spark.pyspark.python=/home/lue/anaconda3/bin/python --master spark://147.46.241.90:7077 --num-executors=6 --executor-cores=7 --executor-memory=29G examples.py

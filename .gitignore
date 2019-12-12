@@ -124,3 +124,4 @@ dmypy.json
 
 metastore_db
 /run.cmd
+/spark.cfg
