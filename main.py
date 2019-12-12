@@ -15,7 +15,7 @@ from backend import LocalBackend, SparkBackend
 
 import os
 
-version = '0.2.0'
+version = '0.3.0'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('config', help='A configuration file')
@@ -76,7 +76,7 @@ def run_queue():
                 query.num_processed_rows += job.sample.num_rows
                 query.last_updated = now()
 
-                eventlet.sleep(1)
+                # eventlet.sleep(1)
 
                 sio.emit('STATUS/job/end', {'id': query.id},
                     room=session.code)

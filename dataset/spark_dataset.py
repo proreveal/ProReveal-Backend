@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import random
 
 from .field import FieldTrait, QuantitativeField
 
@@ -50,7 +51,15 @@ class SparkDataset:
 
             self.samples.append(sample)            
 
+        if self.backend.config.getboolean('backend', 'shuffle'):
+            random.shuffle(self.samples)
         
+        if self.backend.config.getboolean('backend', 'eager'):
+            for sample in self.samples:
+                sample.df.cache()
+                sample.df.count()
+                
+
         for fieldTrait in self.metadata['fields']:
             if isinstance(field, QuantitativeField):
                 if field.min is None:
