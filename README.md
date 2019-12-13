@@ -131,7 +131,7 @@ Here is an example:
 
 ```json
 {
-    "source": "<source specification>"
+    "source": "<source specification>",
     "fields": [
         {
             "name": "Language",
